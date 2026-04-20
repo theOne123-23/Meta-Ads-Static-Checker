@@ -239,15 +239,16 @@ function renderCard(r, idx) {
   const size = r.size || {};
   const ai   = r.ai   || {};
   const sz   = r.safe_zone;
+  const aiOk = !ai.error && ai.performance_score != null;
 
   const ratio = size.detected_ratio || '?';
   const dims  = (size.width && size.height) ? `${size.width}×${size.height}` : '';
 
-  // Performance ring
-  const perf = ai.performance_score ?? 0;
-  const ringColor = perf >= 70 ? '#22c55e' : perf >= 45 ? '#f59e0b' : '#ef4444';
+  // Performance ring — only show real data if AI worked
+  const perf = aiOk ? (ai.performance_score ?? 0) : null;
+  const ringColor = perf === null ? '#bcc0c4' : perf >= 70 ? '#22c55e' : perf >= 45 ? '#f59e0b' : '#ef4444';
   const circumference = 2 * Math.PI * 30;
-  const offset = circumference - (perf / 100) * circumference;
+  const offset = perf === null ? circumference : circumference - (perf / 100) * circumference;
 
   // Winning verdict
   const verdictMap = {
@@ -256,15 +257,19 @@ function renderCard(r, idx) {
     'Needs Work':  ['win-needs', '⚠ Needs Work'],
     'Not Ready':   ['win-not', '✗ Not Ready'],
   };
-  const [badgeCls, badgeText] = verdictMap[ai.winning_verdict] || ['win-needs', ai.winning_verdict || '—'];
+  const [badgeCls, badgeText] = aiOk
+    ? (verdictMap[ai.winning_verdict] || ['win-needs', ai.winning_verdict || '—'])
+    : ['win-needs', '— Awaiting AI'];
 
-  // Safe zone section
-  const szVerdict = ai.safe_zone?.verdict || (sz ? (sz.warnings?.length ? 'REVIEW' : 'PASS') : '—');
-  const szExplain = ai.safe_zone?.explanation || '';
-  const szElements = ai.safe_zone?.elements_in_danger_zone || [];
-  const szPass = szVerdict === 'PASS';
+  // Safe zone — ONLY use AI verdict, never pixel fallback
+  const szData     = ai.safe_zone;
+  const showSZ     = ratio !== '1:1';  // 1:1 needs no safe zone
+  const szVerdict  = szData?.verdict || (aiOk ? 'PASS' : null);
+  const szExplain  = szData?.explanation || '';
+  const szElements = szData?.elements_in_danger_zone || [];
+  const szPass     = szVerdict === 'PASS';
 
-  // Overlay image
+  // Overlay image (visual only, not used for verdict)
   const overlayImg = sz?.overlay_image
     ? `<img id="overlay-${idx}" src="data:image/png;base64,${sz.overlay_image}" alt="Safe zone overlay" style="display:none;width:100%;border-radius:8px;border:1px solid #e4e6eb"/>
        <span class="overlay-toggle" onclick="toggleOverlay(${idx})">Show safe zone overlay</span>`
@@ -275,7 +280,7 @@ function renderCard(r, idx) {
 
   // Quality grid
   const q = ai.quality || {};
-  const qualityGrid = q.score != null ? `
+  const qualityGrid = aiOk && q.score != null ? `
     <div>
       <div class="section-title">Creative Quality Signals</div>
       <div class="quality-grid">
@@ -286,6 +291,16 @@ function renderCard(r, idx) {
         ${qItem('Clutter', q.clutter_level || '—')}
         ${qItem('Value Prop Visible', q.value_prop_visible ? 'Yes ✓' : 'No ✗')}
       </div>
+    </div>` : '';
+
+  // AI error block
+  const aiErrorBlock = !aiOk ? `
+    <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:14px 16px;border-radius:6px;font-size:13px;line-height:1.6">
+      <strong>AI Analysis not available</strong><br>
+      The <code>ANTHROPIC_API_KEY</code> is not configured on your Render service.<br><br>
+      <strong>To fix:</strong> Go to render.com → your service → <em>Environment</em> tab → Add variable:<br>
+      <code>ANTHROPIC_API_KEY = your-key-here</code><br><br>
+      Get your key at <strong>console.anthropic.com</strong> → API Keys → Create Key (free credits available).
     </div>` : '';
 
   return `
@@ -310,6 +325,8 @@ function renderCard(r, idx) {
       <!-- Right: analysis -->
       <div class="analysis-col">
 
+        ${aiErrorBlock}
+
         <!-- Performance ring + verdict -->
         <div class="perf-row">
           <div class="ring-wrap">
@@ -319,42 +336,50 @@ function renderCard(r, idx) {
                 stroke="${ringColor}"
                 stroke-dasharray="${circumference}"
                 stroke-dashoffset="${offset}"/>
-              <text class="ring-text" x="40" y="37" fill="${ringColor}" font-size="15" font-weight="800">${perf}%</text>
+              <text class="ring-text" x="40" y="37" fill="${ringColor}" font-size="15" font-weight="800">${perf !== null ? perf+'%' : '?'}</text>
               <text class="ring-label" x="40" y="52" fill="#65676b" font-size="9">Performance</text>
             </svg>
           </div>
           <div class="perf-info">
-            <h3 style="color:${ringColor}">${perfLabel(perf)}</h3>
+            <h3 style="color:${ringColor}">${perf !== null ? perfLabel(perf) : 'No AI yet'}</h3>
             <div class="sub">Predicted Meta ad performance</div>
             <span class="winning-badge ${badgeCls}">${badgeText}</span>
           </div>
         </div>
 
         <!-- AI Analysis -->
-        ${ai.analysis ? `<div class="analysis-text">${ai.analysis}</div>` : ''}
+        ${aiOk && ai.analysis ? `<div class="analysis-text">${ai.analysis}</div>` : ''}
 
-        <!-- Safe Zone -->
-        <div>
+        <!-- Safe Zone — only for non-1:1 ratios -->
+        ${showSZ ? `<div>
           <div class="section-title">Safe Zone Check</div>
+          ${szVerdict ? `
           <div class="safe-zone-row">
             <span class="sz-badge ${szPass ? 'sz-pass' : 'sz-fail'}">${szPass ? '✓ PASS' : '✗ FAIL'}</span>
             <span class="sz-text">${szExplain || (szPass ? 'All key content is within the safe zone.' : 'Content detected in danger zones.')}</span>
           </div>
           ${szElements.length ? `<div class="list-items" style="margin-top:8px">${szElements.map(e=>`<div class="list-item"><span class="dot dot-red"></span><span>${e}</span></div>`).join('')}</div>` : ''}
-        </div>
+          ` : `<div class="sz-text" style="color:#999">Safe zone analysis requires AI — add API key to enable.</div>`}
+        </div>` : `<div>
+          <div class="section-title">Safe Zone Check</div>
+          <div class="safe-zone-row">
+            <span class="sz-badge sz-pass">✓ N/A</span>
+            <span class="sz-text">1:1 ratio — the entire image is fully visible in feed. No safe zone restrictions apply.</span>
+          </div>
+        </div>`}
 
         <!-- Quality signals -->
         ${qualityGrid}
 
         <!-- Strengths -->
-        ${(ai.strengths||[]).length ? `
+        ${aiOk && (ai.strengths||[]).length ? `
         <div>
           <div class="section-title">What's Working</div>
           <div class="list-items">${(ai.strengths||[]).map(s=>`<div class="list-item"><span class="dot dot-green"></span><span>${s}</span></div>`).join('')}</div>
         </div>` : ''}
 
         <!-- Issues -->
-        ${(ai.issues||[]).length ? `
+        ${aiOk && (ai.issues||[]).length ? `
         <div>
           <div class="section-title">Issues Found</div>
           <div class="list-items">${(ai.issues||[]).map(s=>`<div class="list-item"><span class="dot dot-red"></span><span>${s}</span></div>`).join('')}</div>

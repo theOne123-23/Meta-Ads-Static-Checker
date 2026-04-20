@@ -6,16 +6,7 @@ from PIL import Image, ImageDraw, ImageFont
 # Values = how much to EXCLUDE (danger zone) from each edge.
 # Everything INSIDE the remaining area is the "safe zone".
 SAFE_ZONES = {
-    "1:1": {
-        "top":    0.05,
-        "bottom": 0.05,
-        "left":   0.05,
-        "right":  0.05,
-        "notes": [
-            "Top/bottom 5%: may be clipped by feed UI borders.",
-            "Keep logos, faces, and key text inside the safe zone.",
-        ],
-    },
+    # 1:1 intentionally omitted — full image is visible in feed, no safe zone needed
     "9:16": {
         "top":    0.14,
         "bottom": 0.22,
