@@ -3,7 +3,8 @@ import io
 import sys
 import json
 import base64
-import google.generativeai as genai
+from google import genai
+from google.genai import types as genai_types
 from PIL import Image, ImageFilter, ImageStat
 
 SAFE_ZONE_MARGINS = {
@@ -287,8 +288,7 @@ def _gemini_analyze(image_path: str, ratio_name: str | None) -> dict | None:
         return None
 
     try:
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        client = genai.Client(api_key=api_key)
 
         margins = SAFE_ZONE_MARGINS.get(ratio_name or "", {})
         if ratio_name == "1:1" or not margins:
@@ -384,9 +384,11 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
         elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
             mime = "image/webp"
 
-        import google.generativeai.types as gtypes
-        img_part = {"inline_data": {"mime_type": mime, "data": base64.b64encode(img_bytes).decode()}}
-        response = model.generate_content([img_part, prompt])
+        img_part = genai_types.Part.from_bytes(data=img_bytes, mime_type=mime)
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=[img_part, prompt],
+        )
 
         raw = response.text.strip()
         if raw.startswith("```"):
