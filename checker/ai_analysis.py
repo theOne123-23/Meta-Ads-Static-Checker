@@ -288,7 +288,7 @@ def _gemini_analyze(image_path: str, ratio_name: str | None) -> dict | None:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-1.5-flash")
 
         margins = SAFE_ZONE_MARGINS.get(ratio_name or "", {})
         if ratio_name == "1:1" or not margins:
