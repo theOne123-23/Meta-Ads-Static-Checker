@@ -1,409 +1,504 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Meta Ads Static Checker</title>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f2f5;color:#1c1e21;min-height:100vh;padding:32px 16px}
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Meta Ads Checker — AI Creative Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:#f0f2f5;color:#1c1e21;min-height:100vh;-webkit-font-smoothing:antialiased}
 
-    .header{text-align:center;margin-bottom:32px}
-    .header h1{font-size:26px;font-weight:800;color:#1877f2}
-    .header p{font-size:13px;color:#65676b;margin-top:4px}
+/* HEADER */
+.hdr{background:linear-gradient(135deg,#1877f2,#0050b3);padding:32px 20px 28px;text-align:center;color:#fff;position:relative;overflow:hidden}
+.hdr::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 25% 60%,rgba(255,255,255,.09),transparent 55%),radial-gradient(ellipse at 75% 30%,rgba(255,255,255,.06),transparent 50%);pointer-events:none}
+.hdr-inner{position:relative;z-index:1}
+.hdr-icon{width:54px;height:54px;background:rgba(255,255,255,.18);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;backdrop-filter:blur(4px)}
+.hdr h1{font-size:32px;font-weight:900;letter-spacing:-.8px;line-height:1.1}
+.hdr p{font-size:14px;opacity:.82;margin-top:7px;font-weight:400}
+.hdr-badges{display:flex;justify-content:center;gap:8px;margin-top:16px;flex-wrap:wrap}
+.hdr-badge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);border-radius:100px;padding:4px 14px;font-size:12px;font-weight:600;backdrop-filter:blur(4px)}
 
-    /* Upload zone */
-    .upload-section{max-width:680px;margin:0 auto 28px}
-    .drop-area{border:2px dashed #1877f2;border-radius:14px;padding:40px 24px;text-align:center;cursor:pointer;background:white;transition:background .2s;position:relative}
-    .drop-area.drag-over,.drop-area:hover{background:#e7f0fd}
-    .drop-icon{font-size:44px;margin-bottom:10px}
-    .drop-area h2{font-size:16px;font-weight:700;color:#1877f2}
-    .drop-area p{font-size:13px;color:#65676b;margin-top:4px}
-    input[type=file]{display:none}
+/* LAYOUT */
+.main{max-width:800px;margin:0 auto;padding:28px 16px 60px}
 
-    .thumb-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-    .thumb-item{position:relative;width:80px;text-align:center}
-    .thumb-item img{width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e4e6eb}
-    .thumb-item .fname{font-size:10px;color:#65676b;margin-top:3px;word-break:break-all;line-height:1.3}
-    .thumb-item .remove-btn{position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:18px;text-align:center;padding:0}
+/* UPLOAD CARD */
+.upload-card{background:#fff;border-radius:20px;box-shadow:0 2px 14px rgba(0,0,0,.07);margin-bottom:16px;overflow:hidden}
+.drop-zone{border:2.5px dashed #c5d7f7;border-radius:14px;margin:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:#fafbff}
+.drop-zone:hover,.drop-zone.over{border-color:#1877f2;background:#eef4ff;transform:scale(1.005)}
+.upl-icon{width:58px;height:58px;background:linear-gradient(135deg,#dbeafe,#eff6ff);border-radius:16px;display:inline-flex;align-items:center;justify-content:center;margin-bottom:14px}
+.upl-icon svg{width:30px;height:30px;color:#1877f2}
+.drop-zone h2{font-size:17px;font-weight:700;color:#1c1e21;margin-bottom:6px}
+.drop-zone p{font-size:13px;color:#65676b;line-height:1.5}
+.browse{color:#1877f2;font-weight:600;cursor:pointer}
+.browse:hover{text-decoration:underline}
+.fmt-pills{display:flex;justify-content:center;gap:6px;margin-top:14px;flex-wrap:wrap}
+.fmt-pill{background:#e7f0ff;color:#1d4ed8;border-radius:100px;padding:3px 11px;font-size:11px;font-weight:600}
+input[type=file]{display:none}
 
-    .analyze-btn{display:block;width:100%;max-width:680px;margin:0 auto 32px;padding:14px;background:#1877f2;color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
-    .analyze-btn:hover{background:#166fe5}
-    .analyze-btn:disabled{background:#bcc0c4;cursor:not-allowed}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:10px;padding:0 16px 16px}
+.thumb{position:relative;border-radius:12px}
+.thumb img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px;border:2px solid #e4e6ea;display:block}
+.thumb .fn{font-size:9.5px;color:#65676b;margin-top:4px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.thumb .rm{position:absolute;top:-7px;right:-7px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:13px;cursor:pointer;line-height:20px;text-align:center;padding:0;font-weight:700;box-shadow:0 2px 6px rgba(239,68,68,.4);transition:transform .12s}
+.thumb .rm:hover{transform:scale(1.2)}
 
-    /* Progress */
-    .progress-bar-wrap{max-width:680px;margin:0 auto 20px;display:none}
-    .progress-bar-bg{background:#e4e6eb;border-radius:8px;height:8px;overflow:hidden}
-    .progress-bar-fill{height:8px;background:#1877f2;border-radius:8px;transition:width .4s;width:0%}
-    .progress-label{font-size:12px;color:#65676b;text-align:center;margin-top:6px}
+/* BUTTON */
+.btn-go{display:block;width:100%;padding:16px;background:linear-gradient(135deg,#1877f2,#0050b3);color:#fff;border:none;border-radius:14px;font-size:16px;font-weight:700;cursor:pointer;letter-spacing:.2px;box-shadow:0 4px 18px rgba(24,119,242,.35);transition:all .2s;margin-bottom:20px;font-family:inherit}
+.btn-go:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 26px rgba(24,119,242,.45)}
+.btn-go:disabled{background:#bcc0c4;box-shadow:none;cursor:not-allowed;transform:none}
 
-    /* Result cards */
-    #results{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+/* PROGRESS */
+.prog-wrap{display:none;background:#fff;border-radius:14px;padding:16px 20px;margin-bottom:20px;box-shadow:0 2px 12px rgba(0,0,0,.06)}
+.prog-track{background:#e4e6ea;border-radius:8px;height:6px;overflow:hidden}
+.prog-fill{height:6px;background:linear-gradient(90deg,#1877f2,#22c55e);border-radius:8px;transition:width .6s ease;width:0%}
+.prog-lbl{font-size:13px;color:#65676b;text-align:center;margin-top:10px;font-weight:500}
 
-    .result-card{background:white;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09);overflow:hidden}
-    .result-card-header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2f5;flex-wrap:wrap;gap:10px}
-    .result-card-header .fname{font-size:14px;font-weight:700;color:#1c1e21}
-    .result-card-header .meta-tags{display:flex;gap:6px;flex-wrap:wrap}
-    .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-    .tag-ratio{background:#e7f0fd;color:#1877f2}
-    .tag-size{background:#f0f0f0;color:#444}
+/* RESULTS */
+#results{display:flex;flex-direction:column;gap:20px}
+.err-box{background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:14px 18px;color:#b91c1c;font-size:14px;font-weight:500;text-align:center}
 
-    .result-card-body{display:grid;grid-template-columns:220px 1fr;gap:0}
-    @media(max-width:600px){.result-card-body{grid-template-columns:1fr}}
+/* RESULT CARD */
+.rcard{background:#fff;border-radius:20px;box-shadow:0 2px 18px rgba(0,0,0,.08);overflow:hidden;animation:fadein .4s ease}
+@keyframes fadein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
-    /* Left col — image + overlay */
-    .img-col{padding:18px;border-right:1px solid #f0f2f5;display:flex;flex-direction:column;align-items:center;gap:10px}
-    .img-col img{width:100%;border-radius:8px;border:1px solid #e4e6eb}
-    .overlay-toggle{font-size:11px;color:#1877f2;cursor:pointer;text-decoration:underline}
+.card-hdr{padding:14px 20px;border-bottom:1px solid #f0f2f5;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-fname{font-size:14px;font-weight:700;color:#1c1e21;max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700}
+.t-ratio{background:#dbeafe;color:#1d4ed8}
+.t-size{background:#f3f4f6;color:#374151}
+.t-err{background:#fee2e2;color:#b91c1c}
 
-    /* Right col — analysis */
-    .analysis-col{padding:20px 22px;display:flex;flex-direction:column;gap:18px}
+.card-body{display:grid;grid-template-columns:240px 1fr}
+@media(max-width:620px){.card-body{grid-template-columns:1fr}}
 
-    /* Performance ring */
-    .perf-row{display:flex;align-items:center;gap:20px}
-    .ring-wrap{flex-shrink:0}
-    svg.ring{transform:rotate(-90deg)}
-    .ring-bg{fill:none;stroke:#e4e6eb;stroke-width:8}
-    .ring-fill{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s}
-    .ring-text{font-size:15px;font-weight:800;text-anchor:middle;dominant-baseline:central}
-    .ring-label{font-size:10px;text-anchor:middle;dominant-baseline:central;fill:#65676b}
+/* IMAGE COL */
+.img-col{padding:16px;border-right:1px solid #f0f2f5;background:#fafbff;display:flex;flex-direction:column;gap:10px}
+.img-col img{width:100%;border-radius:10px;border:1px solid #e4e6ea;display:block}
+.toggle-btn{background:#eef4ff;border:1px solid #bfdbfe;border-radius:8px;padding:7px 12px;font-size:12px;font-weight:600;color:#1877f2;cursor:pointer;text-align:center;transition:background .15s;font-family:inherit}
+.toggle-btn:hover{background:#dbeafe}
+.legend{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#65676b;font-weight:500}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 
-    .perf-info h3{font-size:18px;font-weight:800;margin-bottom:2px}
-    .perf-info .sub{font-size:12px;color:#65676b}
-    .winning-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-top:6px}
-    .win-winning{background:#d4edda;color:#155724}
-    .win-promising{background:#d1ecf1;color:#0c5460}
-    .win-needs{background:#fff3cd;color:#856404}
-    .win-not{background:#f8d7da;color:#721c24}
+/* ANALYSIS COL */
+.anal-col{padding:20px 22px;display:flex;flex-direction:column;gap:18px}
 
-    /* Section */
-    .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#65676b;margin-bottom:8px}
+/* SCORE RING */
+.score-row{display:flex;align-items:center;gap:18px}
+.ring-wrap{position:relative;width:86px;height:86px;flex-shrink:0}
+.ring-svg{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:#e5e7eb;stroke-width:9}
+.ring-arc{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1)}
+.ring-txt{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring-pct{font-size:19px;font-weight:800;line-height:1}
+.ring-lbl{font-size:9px;color:#9ca3af;font-weight:600;margin-top:2px}
 
-    .safe-zone-row{display:flex;gap:10px;align-items:flex-start}
-    .sz-badge{flex-shrink:0;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
-    .sz-pass{background:#d4edda;color:#155724}
-    .sz-fail{background:#f8d7da;color:#721c24}
-    .sz-text{font-size:12px;color:#444;line-height:1.5}
+.score-info{}
+.perf-title{font-size:22px;font-weight:800;letter-spacing:-.4px;line-height:1;margin-bottom:4px}
+.perf-sub{font-size:12px;color:#65676b;font-weight:500}
+.verdict{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:100px;font-size:12px;font-weight:700;margin-top:10px}
+.v-win{background:#dcfce7;color:#15803d}
+.v-pro{background:#dbeafe;color:#1d4ed8}
+.v-wrk{background:#fef3c7;color:#92400e}
+.v-nr{background:#fee2e2;color:#b91c1c}
 
-    .list-items{display:flex;flex-direction:column;gap:5px}
-    .list-item{display:flex;gap:8px;font-size:12px;line-height:1.5}
-    .list-item .dot{flex-shrink:0;margin-top:3px;width:7px;height:7px;border-radius:50%}
-    .dot-green{background:#22c55e}
-    .dot-red{background:#ef4444}
-    .dot-blue{background:#1877f2}
+/* ANALYSIS BOX */
+.anal-box{background:linear-gradient(135deg,#f8faff,#eef4ff);border-left:3px solid #1877f2;border-radius:0 10px 10px 0;padding:13px 15px;font-size:13px;line-height:1.72;color:#374151}
 
-    .improve-item{background:#f0f7ff;border-left:3px solid #1877f2;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;line-height:1.5;margin-bottom:5px}
+/* SECTION */
+.sec-lbl{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#9ca3af;margin-bottom:8px}
 
-    .analysis-text{font-size:13px;color:#444;line-height:1.6;background:#f8f9fa;padding:12px;border-radius:8px}
+/* SAFE ZONE */
+.sz-row{display:flex;align-items:flex-start;gap:10px}
+.sz-badge{flex-shrink:0;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700}
+.sz-pass{background:#dcfce7;color:#15803d}
+.sz-fail{background:#fee2e2;color:#b91c1c}
+.sz-na{background:#f3f4f6;color:#374151}
+.sz-txt{font-size:12.5px;color:#4b5563;line-height:1.55}
+.dang-list{margin-top:8px;display:flex;flex-direction:column;gap:5px}
+.dang-item{display:flex;align-items:flex-start;gap:7px;font-size:12px;color:#374151;line-height:1.5}
 
-    .quality-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .q-item{background:#f8f9fa;border-radius:8px;padding:8px 10px}
-    .q-item .q-label{font-size:10px;color:#65676b;text-transform:uppercase;letter-spacing:.05em}
-    .q-item .q-val{font-size:13px;font-weight:700;margin-top:2px}
+/* QUALITY PILLS */
+.q-pills{display:flex;flex-wrap:wrap;gap:6px}
+.q-pill{background:#f3f4f6;border-radius:8px;padding:5px 11px;font-size:11.5px;color:#374151;font-weight:500}
+.q-pill strong{color:#1c1e21;font-weight:700;margin-right:3px}
 
-    /* Error state */
-    .error-card{background:white;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09);padding:24px;text-align:center;color:#721c24}
+/* ITEM LISTS */
+.ilist{display:flex;flex-direction:column;gap:6px}
+.iitem{display:flex;align-items:flex-start;gap:9px;font-size:13px;color:#374151;line-height:1.5}
+.dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.d-g{background:#22c55e}.d-r{background:#ef4444}
 
-    /* Skeleton loader */
-    .skeleton{background:linear-gradient(90deg,#f0f2f5 25%,#e4e6eb 50%,#f0f2f5 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:8px;height:20px;margin-bottom:8px}
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
-  </style>
+/* IMPROVEMENTS */
+.imp-list{display:flex;flex-direction:column;gap:8px}
+.imp-card{display:flex;gap:12px;background:#f8faff;border:1px solid #e0eaff;border-radius:12px;padding:12px 14px;align-items:flex-start}
+.imp-n{background:#1877f2;color:#fff;width:22px;height:22px;border-radius:50%;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.imp-t{font-size:12.5px;color:#1e3a5f;line-height:1.6}
+
+/* POLICY COMPLIANCE */
+.policy-block{border-radius:12px;overflow:hidden;border:1px solid #e5e7eb}
+.policy-hdr{padding:10px 14px;display:flex;align-items:center;gap:10px}
+.policy-hdr.compliant{background:#f0fdf4;border-bottom:1px solid #bbf7d0}
+.policy-hdr.violation{background:#fef2f2;border-bottom:1px solid #fecaca}
+.policy-hdr.review{background:#fffbeb;border-bottom:1px solid #fde68a}
+.policy-status{font-size:12px;font-weight:800;letter-spacing:.05em}
+.policy-status.compliant{color:#15803d}
+.policy-status.violation{color:#b91c1c}
+.policy-status.review{color:#92400e}
+.policy-body{padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:#fff}
+.policy-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.55;color:#374151}
+.policy-icon{flex-shrink:0;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;margin-top:1px}
+.pi-block{background:#fee2e2;color:#b91c1c}
+.pi-warn{background:#fef3c7;color:#92400e}
+.pi-ok{background:#dcfce7;color:#15803d}
+.pi-info{background:#dbeafe;color:#1d4ed8}
+.bplist{display:flex;flex-direction:column;gap:6px}
+.bpitem{display:flex;align-items:flex-start;gap:8px;font-size:12px;color:#374151;line-height:1.5}
+
+/* SKELETON */
+.skel{background:linear-gradient(90deg,#f0f2f5 25%,#e4e6eb 50%,#f0f2f5 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:8px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
 </head>
 <body>
 
-<div class="header">
-  <h1>Meta Ads Static Checker</h1>
-  <p>Upload multiple ad sizes — AI checks safe zone, quality, and predicts performance</p>
-</div>
-
-<div class="upload-section">
-  <div class="drop-area" id="dropArea">
-    <div class="drop-icon">🖼️</div>
-    <h2>Drop your ad images here</h2>
-    <p>Supports bulk upload — PNG, JPG, WEBP, GIF · max 30MB each</p>
-    <p style="margin-top:8px;font-size:12px;color:#1877f2;font-weight:600">Click anywhere to browse files</p>
-    <div class="thumb-grid" id="thumbGrid"></div>
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="hdr-icon">📊</div>
+    <h1>Meta Ads Checker</h1>
+    <p>Upload your creatives — AI checks size, safe zone &amp; predicts performance</p>
+    <div class="hdr-badges">
+      <span class="hdr-badge">📱 1:1 Feed</span>
+      <span class="hdr-badge">📲 9:16 Reels &amp; Stories</span>
+      <span class="hdr-badge">🖥 1.91:1 Landscape</span>
+    </div>
   </div>
-  <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp" multiple/>
-</div>
+</header>
 
-<button class="analyze-btn" id="analyzeBtn" disabled>Analyze Ads</button>
+<main class="main">
 
-<div class="progress-bar-wrap" id="progressWrap">
-  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
-  <div class="progress-label" id="progressLabel">Analyzing…</div>
-</div>
-
-<div id="results"></div>
-
-<script>
-const dropArea   = document.getElementById('dropArea');
-const fileInput  = document.getElementById('fileInput');
-const thumbGrid  = document.getElementById('thumbGrid');
-const analyzeBtn = document.getElementById('analyzeBtn');
-const progressWrap = document.getElementById('progressWrap');
-const progressFill = document.getElementById('progressFill');
-const progressLabel = document.getElementById('progressLabel');
-const resultsEl  = document.getElementById('results');
-let selectedFiles = [];
-
-dropArea.addEventListener('click', e => { if(e.target.classList.contains('remove-btn')) return; fileInput.click(); });
-dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over'); });
-dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
-dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.classList.remove('drag-over'); addFiles(Array.from(e.dataTransfer.files)); });
-fileInput.addEventListener('change', () => { addFiles(Array.from(fileInput.files)); fileInput.value=''; });
-
-function addFiles(files) {
-  const allowed = ['image/png','image/jpeg','image/gif','image/webp'];
-  files.filter(f => allowed.includes(f.type)).forEach(f => {
-    if (!selectedFiles.find(x => x.name===f.name && x.size===f.size)) selectedFiles.push(f);
-  });
-  renderThumbs();
-  analyzeBtn.disabled = selectedFiles.length === 0;
-}
-
-function removeFile(idx) {
-  selectedFiles.splice(idx, 1);
-  renderThumbs();
-  analyzeBtn.disabled = selectedFiles.length === 0;
-}
-
-function renderThumbs() {
-  thumbGrid.innerHTML = selectedFiles.map((f,i) => {
-    const url = URL.createObjectURL(f);
-    return `<div class="thumb-item">
-      <button class="remove-btn" onclick="removeFile(${i})">×</button>
-      <img src="${url}" alt="${f.name}"/>
-      <div class="fname">${f.name}</div>
-    </div>`;
-  }).join('');
-}
-
-analyzeBtn.addEventListener('click', async () => {
-  if (!selectedFiles.length) return;
-  analyzeBtn.disabled = true;
-  resultsEl.innerHTML = '';
-  progressWrap.style.display = 'block';
-  progressFill.style.width = '0%';
-  progressLabel.textContent = `Analyzing ${selectedFiles.length} ad${selectedFiles.length>1?'s':''}… (this may take 10–30 seconds)`;
-
-  // Show skeleton cards
-  resultsEl.innerHTML = selectedFiles.map(f => `
-    <div class="result-card">
-      <div class="result-card-header">
-        <span class="fname">${f.name}</span>
-        <div class="meta-tags"><div class="skeleton" style="width:60px;height:20px"></div></div>
+  <div class="upload-card">
+    <div class="drop-zone" id="dropZone">
+      <div class="upl-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+          <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
+        </svg>
       </div>
-      <div style="padding:24px"><div class="skeleton"></div><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:50%"></div></div>
-    </div>`).join('');
-
-  const fd = new FormData();
-  selectedFiles.forEach(f => fd.append('files', f));
-
-  try {
-    // Animate progress
-    let prog = 10;
-    const ticker = setInterval(() => {
-      prog = Math.min(prog + Math.random() * 8, 85);
-      progressFill.style.width = prog + '%';
-    }, 800);
-
-    const res = await fetch('/check-bulk', { method: 'POST', body: fd });
-    const data = await res.json();
-
-    clearInterval(ticker);
-    progressFill.style.width = '100%';
-    progressLabel.textContent = 'Done!';
-    setTimeout(() => { progressWrap.style.display = 'none'; }, 1200);
-
-    if (data.error) {
-      resultsEl.innerHTML = `<div class="error-card">Error: ${data.error}</div>`;
-      return;
-    }
-    renderResults(data.results);
-  } catch(err) {
-    progressWrap.style.display = 'none';
-    resultsEl.innerHTML = `<div class="error-card">Something went wrong. Please try again.</div>`;
-  } finally {
-    analyzeBtn.disabled = false;
-  }
-});
-
-function renderResults(results) {
-  resultsEl.innerHTML = results.map((r, idx) => renderCard(r, idx)).join('');
-}
-
-function renderCard(r, idx) {
-  if (r.error) return `<div class="error-card"><strong>${r.filename}</strong><br>${r.error}</div>`;
-
-  const size = r.size || {};
-  const ai   = r.ai   || {};
-  const sz   = r.safe_zone;
-
-  const ratio = size.detected_ratio || '?';
-  const dims  = (size.width && size.height) ? `${size.width}×${size.height}` : '';
-
-  // Performance ring
-  const perf = ai.performance_score ?? 0;
-  const ringColor = perf >= 70 ? '#22c55e' : perf >= 45 ? '#f59e0b' : '#ef4444';
-  const circumference = 2 * Math.PI * 30;
-  const offset = circumference - (perf / 100) * circumference;
-
-  // Winning verdict
-  const verdictMap = {
-    'Winning Ad':  ['win-winning', '🏆 Winning Ad'],
-    'Promising':   ['win-promising', '✨ Promising'],
-    'Needs Work':  ['win-needs', '⚠ Needs Work'],
-    'Not Ready':   ['win-not', '✗ Not Ready'],
-  };
-  const [badgeCls, badgeText] = verdictMap[ai.winning_verdict] || ['win-needs', ai.winning_verdict || '—'];
-
-  // Safe zone section
-  const szVerdict = ai.safe_zone?.verdict || (sz ? (sz.warnings?.length ? 'REVIEW' : 'PASS') : '—');
-  const szExplain = ai.safe_zone?.explanation || '';
-  const szElements = ai.safe_zone?.elements_in_danger_zone || [];
-  const szPass = szVerdict === 'PASS';
-
-  // Overlay image
-  const overlayImg = sz?.overlay_image
-    ? `<img id="overlay-${idx}" src="data:image/png;base64,${sz.overlay_image}" alt="Safe zone overlay" style="display:none;width:100%;border-radius:8px;border:1px solid #e4e6eb"/>
-       <span class="overlay-toggle" onclick="toggleOverlay(${idx})">Show safe zone overlay</span>`
-    : '';
-
-  // Original image preview
-  const origImg = `<img id="orig-${idx}" src="" alt="Ad preview" style="width:100%;border-radius:8px;border:1px solid #e4e6eb"/>`;
-
-  // Quality grid
-  const q = ai.quality || {};
-  const qualityGrid = q.score != null ? `
-    <div>
-      <div class="section-title">Creative Quality Signals</div>
-      <div class="quality-grid">
-        ${qItem('Quality Score', q.score + '/100')}
-        ${qItem('Thumb-Stop', q.thumb_stop_power || '—')}
-        ${qItem('Text Clarity', q.text_clarity || '—')}
-        ${qItem('Contrast', q.contrast || '—')}
-        ${qItem('Clutter', q.clutter_level || '—')}
-        ${qItem('Value Prop Visible', q.value_prop_visible ? 'Yes ✓' : 'No ✗')}
-      </div>
-    </div>` : '';
-
-  return `
-  <div class="result-card" data-idx="${idx}">
-    <div class="result-card-header">
-      <span class="fname">${r.filename}</span>
-      <div class="meta-tags">
-        ${ratio !== '?' ? `<span class="tag tag-ratio">${ratio}</span>` : ''}
-        ${dims ? `<span class="tag tag-size">${dims}px</span>` : ''}
-        ${!size.passed ? `<span class="tag" style="background:#f8d7da;color:#721c24">Size Issue</span>` : ''}
+      <h2>Drop your ad images here</h2>
+      <p>or <span class="browse" id="browseLink">click to browse files</span></p>
+      <div class="fmt-pills">
+        <span class="fmt-pill">PNG</span><span class="fmt-pill">JPG</span>
+        <span class="fmt-pill">WEBP</span><span class="fmt-pill">GIF</span>
+        <span class="fmt-pill">max 30 MB</span>
       </div>
     </div>
+    <div class="thumbs" id="thumbs" style="display:none"></div>
+    <input type="file" id="fileIn" accept=".png,.jpg,.jpeg,.gif,.webp" multiple/>
+  </div>
 
-    <div class="result-card-body">
+  <button class="btn-go" id="goBtn" disabled>Analyze Ads</button>
 
-      <!-- Left: image -->
-      <div class="img-col">
-        ${origImg}
-        ${overlayImg}
+  <div class="prog-wrap" id="progWrap">
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-lbl" id="progLbl">Analyzing…</div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<script>
+const dropZone=document.getElementById('dropZone'),
+      browseLink=document.getElementById('browseLink'),
+      fileIn=document.getElementById('fileIn'),
+      thumbsEl=document.getElementById('thumbs'),
+      goBtn=document.getElementById('goBtn'),
+      progWrap=document.getElementById('progWrap'),
+      progFill=document.getElementById('progFill'),
+      progLbl=document.getElementById('progLbl'),
+      resultsEl=document.getElementById('results');
+let files=[];
+
+dropZone.addEventListener('click',e=>{if(!e.target.classList.contains('rm'))fileIn.click()});
+browseLink.addEventListener('click',e=>{e.stopPropagation();fileIn.click()});
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('over')});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('over');addFiles([...e.dataTransfer.files])});
+fileIn.addEventListener('change',()=>{addFiles([...fileIn.files]);fileIn.value=''});
+
+function addFiles(nf){
+  const ok=['image/png','image/jpeg','image/gif','image/webp'];
+  nf.filter(f=>ok.includes(f.type)).forEach(f=>{
+    if(!files.find(x=>x.name===f.name&&x.size===f.size))files.push(f);
+  });
+  renderThumbs();
+  goBtn.disabled=files.length===0;
+}
+function removeFile(i){files.splice(i,1);renderThumbs();goBtn.disabled=files.length===0}
+function renderThumbs(){
+  if(!files.length){thumbsEl.style.display='none';thumbsEl.innerHTML='';return}
+  thumbsEl.style.display='grid';
+  thumbsEl.innerHTML=files.map((f,i)=>`
+    <div class="thumb">
+      <button class="rm" onclick="removeFile(${i})">×</button>
+      <img src="${URL.createObjectURL(f)}" alt="${f.name}"/>
+      <div class="fn">${f.name}</div>
+    </div>`).join('');
+}
+
+goBtn.addEventListener('click',async()=>{
+  if(!files.length)return;
+  goBtn.disabled=true;
+  resultsEl.innerHTML='';
+  progWrap.style.display='block';
+  progFill.style.width='0%';
+  progLbl.textContent=`Analyzing ${files.length} ad${files.length>1?'s':''}… please wait`;
+
+  resultsEl.innerHTML=files.map(f=>`
+    <div class="rcard">
+      <div class="card-hdr"><span class="card-fname">${f.name}</span></div>
+      <div style="padding:24px 20px">
+        <div class="skel" style="height:16px;margin-bottom:10px"></div>
+        <div class="skel" style="height:16px;width:70%;margin-bottom:10px"></div>
+        <div class="skel" style="height:16px;width:50%"></div>
       </div>
+    </div>`).join('');
 
-      <!-- Right: analysis -->
-      <div class="analysis-col">
+  const fd=new FormData();
+  files.forEach(f=>fd.append('files',f));
+  let prog=10;
+  const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*10,88);progFill.style.width=prog+'%'},700);
 
-        <!-- Performance ring + verdict -->
-        <div class="perf-row">
-          <div class="ring-wrap">
-            <svg class="ring" width="80" height="80" viewBox="0 0 80 80">
-              <circle class="ring-bg" cx="40" cy="40" r="30"/>
-              <circle class="ring-fill" cx="40" cy="40" r="30"
-                stroke="${ringColor}"
-                stroke-dasharray="${circumference}"
-                stroke-dashoffset="${offset}"/>
-              <text class="ring-text" x="40" y="37" fill="${ringColor}" font-size="15" font-weight="800">${perf}%</text>
-              <text class="ring-label" x="40" y="52" fill="#65676b" font-size="9">Performance</text>
-            </svg>
-          </div>
-          <div class="perf-info">
-            <h3 style="color:${ringColor}">${perfLabel(perf)}</h3>
-            <div class="sub">Predicted Meta ad performance</div>
-            <span class="winning-badge ${badgeCls}">${badgeText}</span>
+  try{
+    const res=await fetch('/check-bulk',{method:'POST',body:fd});
+    if(!res.ok){const t=await res.text();throw new Error(`Server error ${res.status}: ${t.substring(0,300)}`);}
+    const data=await res.json();
+    clearInterval(tick);
+    progFill.style.width='100%';
+    progLbl.textContent='Done!';
+    setTimeout(()=>{progWrap.style.display='none'},1200);
+    if(data.error){resultsEl.innerHTML=`<div class="err-box">⚠️ ${data.error}</div>`;return}
+    window._resultData=data.results;
+    renderResults(data.results);
+  }catch(e){
+    clearInterval(tick);
+    progWrap.style.display='none';
+    resultsEl.innerHTML=`<div class="err-box">⚠️ ${e.message||'Something went wrong. Please try again.'}</div>`;
+    console.error(e);
+  }finally{goBtn.disabled=false}
+});
+
+function renderResults(results){
+  resultsEl.innerHTML=results.map((r,i)=>renderCard(r,i)).join('');
+  results.forEach((r,i)=>{
+    const f=files.find(x=>x.name===r.filename);
+    if(f){const el=document.getElementById(`img-${i}`);if(el)el.src=URL.createObjectURL(f)}
+  });
+  // Animate rings after paint
+  results.forEach((r,i)=>{
+    const perf=(r.ai||{}).performance_score??0;
+    const circ=2*Math.PI*32;
+    const off=circ-(perf/100)*circ;
+    setTimeout(()=>{const el=document.getElementById(`ring-${i}`);if(el)el.style.strokeDashoffset=off},100);
+  });
+}
+
+function renderCard(r,idx){
+  if(r.error)return`<div class="rcard"><div class="card-hdr"><span class="card-fname">${r.filename}</span><span class="tag t-err">Error</span></div><div style="padding:16px 20px;font-size:13px;color:#b91c1c">${r.error}</div></div>`;
+
+  const ai=r.ai||{},sz=r.safe_zone,size=r.size||{};
+  const ratio=size.detected_ratio||'?';
+  const dims=(size.width&&size.height)?`${size.width}×${size.height}px`:'';
+  const perf=ai.performance_score??0;
+  const rc=perf>=70?'#22c55e':perf>=45?'#f59e0b':'#ef4444';
+  const circ=(2*Math.PI*32).toFixed(1);
+
+  const vm={'Winning Ad':['v-win','🏆 Winning Ad'],'Promising':['v-pro','✨ Promising'],'Needs Work':['v-wrk','⚠️ Needs Work'],'Not Ready':['v-nr','✗ Not Ready']};
+  const[vc,vt]=vm[ai.winning_verdict]||['v-wrk',ai.winning_verdict||'—'];
+
+  const is1x1=ratio==='1:1';
+  const aiSZ=ai.safe_zone||{};
+  const szV=aiSZ.verdict||(is1x1?'PASS':'—');
+  const szExpl=aiSZ.explanation||(is1x1?'1:1 ratio — entire image visible in feed. No safe zone restrictions.':'');
+  const szPass=szV==='PASS';
+  const szCls=szPass?(is1x1?'sz-na':'sz-pass'):'sz-fail';
+  const szLbl=szPass?(is1x1?'N/A':'✓ PASS'):'✗ FAIL';
+
+  const hasOvr=!!(sz&&sz.overlay_image);
+  const showOvr=!is1x1&&hasOvr;
+  const imgSrc=showOvr?`data:image/jpeg;base64,${sz.overlay_image}`:'';
+
+  const q=ai.quality||{};
+  const qHtml=q.score!=null?`<div><div class="sec-lbl">Creative Signals</div><div class="q-pills">
+    <span class="q-pill"><strong>Score</strong>${q.score}/100</span>
+    <span class="q-pill"><strong>Thumb-Stop</strong>${q.thumb_stop_power||'—'}</span>
+    <span class="q-pill"><strong>Text</strong>${q.text_clarity||'—'}</span>
+    <span class="q-pill"><strong>Contrast</strong>${q.contrast||'—'}</span>
+    <span class="q-pill"><strong>Clutter</strong>${q.clutter_level||'—'}</span>
+  </div></div>`:'';
+
+  return`
+<div class="rcard">
+  <div class="card-hdr">
+    <span class="card-fname">${r.filename}</span>
+    <div class="tags">
+      ${ratio!=='?'?`<span class="tag t-ratio">${ratio}</span>`:''}
+      ${dims?`<span class="tag t-size">${dims}</span>`:''}
+      ${!size.passed&&(size.issues||[]).length?`<span class="tag t-err">Size Issue</span>`:''}
+    </div>
+  </div>
+  <div class="card-body">
+    <div class="img-col">
+      <img id="img-${idx}" src="${imgSrc}" alt="Ad preview"/>
+      ${hasOvr?`<button class="toggle-btn" id="tog-${idx}" onclick="toggleImg(${idx})">${showOvr?'🖼 Show Original':'🔍 Show Overlay'}</button>`:''}
+      ${!is1x1&&hasOvr?`<div class="legend">
+        <span class="leg-item"><span class="leg-dot" style="background:#dc2626"></span>Danger</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#f97316"></span>Text</span>
+        <span class="leg-item"><span class="leg-dot" style="background:#22c55e"></span>Safe</span>
+      </div>`:''}
+    </div>
+    <div class="anal-col">
+      <div class="score-row">
+        <div class="ring-wrap">
+          <svg class="ring-svg" width="86" height="86" viewBox="0 0 86 86">
+            <circle class="ring-bg" cx="43" cy="43" r="32"/>
+            <circle class="ring-arc" id="ring-${idx}" cx="43" cy="43" r="32"
+              stroke="${rc}" stroke-dasharray="${circ}" stroke-dashoffset="${circ}"/>
+          </svg>
+          <div class="ring-txt">
+            <span class="ring-pct" style="color:${rc}">${perf}%</span>
+            <span class="ring-lbl">SCORE</span>
           </div>
         </div>
-
-        <!-- AI Analysis -->
-        ${ai.analysis ? `<div class="analysis-text">${ai.analysis}</div>` : ''}
-
-        <!-- Safe Zone -->
-        <div>
-          <div class="section-title">Safe Zone Check</div>
-          <div class="safe-zone-row">
-            <span class="sz-badge ${szPass ? 'sz-pass' : 'sz-fail'}">${szPass ? '✓ PASS' : '✗ FAIL'}</span>
-            <span class="sz-text">${szExplain || (szPass ? 'All key content is within the safe zone.' : 'Content detected in danger zones.')}</span>
-          </div>
-          ${szElements.length ? `<div class="list-items" style="margin-top:8px">${szElements.map(e=>`<div class="list-item"><span class="dot dot-red"></span><span>${e}</span></div>`).join('')}</div>` : ''}
+        <div class="score-info">
+          <div class="perf-title" style="color:${rc}">${perfLabel(perf)}</div>
+          <div class="perf-sub">Predicted Meta performance</div>
+          <span class="verdict ${vc}">${vt}</span>
         </div>
-
-        <!-- Quality signals -->
-        ${qualityGrid}
-
-        <!-- Strengths -->
-        ${(ai.strengths||[]).length ? `
-        <div>
-          <div class="section-title">What's Working</div>
-          <div class="list-items">${(ai.strengths||[]).map(s=>`<div class="list-item"><span class="dot dot-green"></span><span>${s}</span></div>`).join('')}</div>
-        </div>` : ''}
-
-        <!-- Issues -->
-        ${(ai.issues||[]).length ? `
-        <div>
-          <div class="section-title">Issues Found</div>
-          <div class="list-items">${(ai.issues||[]).map(s=>`<div class="list-item"><span class="dot dot-red"></span><span>${s}</span></div>`).join('')}</div>
-        </div>` : ''}
-
-        <!-- Improvements -->
-        ${(ai.improvements||[]).length ? `
-        <div>
-          <div class="section-title">How to Improve</div>
-          ${(ai.improvements||[]).map((imp,i)=>`<div class="improve-item"><strong>${i+1}.</strong> ${imp}</div>`).join('')}
-        </div>` : ''}
-
       </div>
+
+      ${ai.analysis?`<div class="anal-box">${ai.analysis}</div>`:''}
+
+      ${renderPolicyBlock(ai.policy_compliance)}
+
+      <div>
+        <div class="sec-lbl">Safe Zone</div>
+        <div class="sz-row">
+          <span class="sz-badge ${szCls}">${szLbl}</span>
+          <span class="sz-txt">${szExpl||(szPass?'All key content is within the safe zone.':'Content in danger zones — see overlay.')}</span>
+        </div>
+        ${(aiSZ.elements_in_danger_zone||[]).length?`<div class="dang-list">${(aiSZ.elements_in_danger_zone||[]).map(e=>`<div class="dang-item"><span class="dot d-r"></span><span>${e}</span></div>`).join('')}</div>`:''}
+      </div>
+
+      ${qHtml}
+
+      ${(ai.strengths||[]).length?`<div><div class="sec-lbl">What's Working</div><div class="ilist">${(ai.strengths||[]).map(s=>`<div class="iitem"><span class="dot d-g"></span><span>${s}</span></div>`).join('')}</div></div>`:''}
+
+      ${(ai.issues||[]).length?`<div><div class="sec-lbl">Issues Found</div><div class="ilist">${(ai.issues||[]).map(s=>`<div class="iitem"><span class="dot d-r"></span><span>${s}</span></div>`).join('')}</div></div>`:''}
+
+      ${(ai.improvements||[]).length?`<div><div class="sec-lbl">How to Improve</div><div class="imp-list">${(ai.improvements||[]).map((t,i)=>`<div class="imp-card"><span class="imp-n">${i+1}</span><span class="imp-t">${t}</span></div>`).join('')}</div></div>`:''}
+    </div>
+  </div>
+</div>`;
+}
+
+function renderPolicyBlock(pc){
+  if(!pc)return'';
+  const overall=(pc.overall||'REVIEW REQUIRED').toUpperCase();
+  const isCompliant=overall==='COMPLIANT';
+  const isViolation=overall.includes('VIOLATION');
+  const cls=isCompliant?'compliant':isViolation?'violation':'review';
+  const icon=isCompliant?'✓':isViolation?'✗':'⚠';
+  const label=isCompliant?'COMPLIANT — No policy violations detected':isViolation?'POLICY VIOLATION — Ad may be rejected':'REVIEW REQUIRED — Manual check needed';
+
+  const items=[];
+
+  // Before/after
+  if(pc.before_after_detected===true){
+    items.push({type:'block',text:`<strong>Before/After Detected:</strong> ${pc.before_after_note||'Before-and-after images are prohibited for health, cosmetic, and weight loss ads.'}`});
+  } else if(pc.before_after_note){
+    items.push({type:'warn',text:`<strong>Before/After:</strong> ${pc.before_after_note}`});
+  }
+
+  // Personal attributes
+  if(pc.personal_attributes_issue===true){
+    items.push({type:'block',text:`<strong>Personal Attributes:</strong> ${pc.personal_attributes_note||'Ad may imply knowledge of personal attributes.'}`});
+  }
+
+  // Health claims
+  if(pc.health_claim_issue===true){
+    items.push({type:'block',text:`<strong>Health Claims:</strong> ${pc.health_claim_note||'Prohibited health claim language detected.'}`});
+  }
+
+  // Negative body image
+  if(pc.negative_body_image_issue===true){
+    items.push({type:'block',text:`<strong>Body Image:</strong> ${pc.negative_body_image_note||'Content may exploit body insecurities.'}`});
+  }
+
+  // Engagement bait
+  if(pc.engagement_bait_issue===true){
+    items.push({type:'block',text:'<strong>Engagement Bait:</strong> Ad contains engagement-bait language (Like/Share/Tag) which is prohibited.'});
+  }
+
+  // Age gate
+  if(pc.age_gate_recommended===true){
+    items.push({type:'warn',text:`<strong>18+ Age Gate Recommended:</strong> ${pc.age_gate_reason||'This ad category requires 18+ targeting.'}`});
+  }
+
+  // Violations
+  (pc.violations||[]).forEach(v=>items.push({type:'block',text:v}));
+
+  // Warnings
+  (pc.warnings||[]).forEach(w=>items.push({type:'warn',text:w}));
+
+  if(isCompliant&&!items.length){
+    items.push({type:'ok',text:'No policy violations detected. Ad appears compliant with Meta\'s advertising standards.'});
+  }
+
+  const bodyHtml=items.map(it=>`
+    <div class="policy-item">
+      <span class="policy-icon ${it.type==='block'?'pi-block':it.type==='warn'?'pi-warn':it.type==='ok'?'pi-ok':'pi-info'}">${it.type==='block'?'✗':it.type==='warn'?'!':it.type==='ok'?'✓':'i'}</span>
+      <span>${it.text}</span>
+    </div>`).join('');
+
+  return`<div>
+    <div class="sec-lbl">Meta Policy Compliance</div>
+    <div class="policy-block">
+      <div class="policy-hdr ${cls}">
+        <span style="font-size:16px">${isCompliant?'✅':isViolation?'🚫':'⚠️'}</span>
+        <span class="policy-status ${cls}">${label}</span>
+      </div>
+      <div class="policy-body">${bodyHtml}</div>
     </div>
   </div>`;
 }
 
-function qItem(label, val) {
-  return `<div class="q-item"><div class="q-label">${label}</div><div class="q-val">${val}</div></div>`;
+function perfLabel(p){
+  if(p>=75)return'High Performer';
+  if(p>=50)return'Average';
+  if(p>=30)return'Below Average';
+  return'Low Performer';
 }
 
-function perfLabel(p) {
-  if (p >= 75) return 'High Performer';
-  if (p >= 50) return 'Average';
-  if (p >= 30) return 'Below Average';
-  return 'Low Performer';
-}
-
-function toggleOverlay(idx) {
-  const orig    = document.getElementById(`orig-${idx}`);
-  const overlay = document.getElementById(`overlay-${idx}`);
-  const btn     = overlay?.nextElementSibling;
-  if (!overlay) return;
-  const showing = overlay.style.display !== 'none';
-  overlay.style.display = showing ? 'none' : 'block';
-  orig.style.display    = showing ? 'block' : 'none';
-  if (btn) btn.textContent = showing ? 'Show safe zone overlay' : 'Show original';
-}
-
-// After results render, set original image srcs from files
-function renderResults(results) {
-  resultsEl.innerHTML = results.map((r, idx) => renderCard(r, idx)).join('');
-  results.forEach((r, idx) => {
-    const file = selectedFiles.find(f => f.name === r.filename);
-    if (file) {
-      const origEl = document.getElementById(`orig-${idx}`);
-      if (origEl) origEl.src = URL.createObjectURL(file);
-    }
-  });
+function toggleImg(idx){
+  const img=document.getElementById(`img-${idx}`);
+  const btn=document.getElementById(`tog-${idx}`);
+  const r=window._resultData?.[idx];
+  const sz=r?.safe_zone;
+  if(img.dataset.mode==='orig'){
+    if(sz?.overlay_image)img.src=`data:image/jpeg;base64,${sz.overlay_image}`;
+    img.dataset.mode='ovr';
+    btn.textContent='🖼 Show Original';
+  }else{
+    const f=files.find(x=>x.name===r?.filename);
+    if(f)img.src=URL.createObjectURL(f);
+    img.dataset.mode='orig';
+    btn.textContent='🔍 Show Overlay';
+  }
 }
 </script>
 </body>
