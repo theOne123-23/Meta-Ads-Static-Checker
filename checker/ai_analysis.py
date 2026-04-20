@@ -1,5 +1,6 @@
 import os
 import io
+import sys
 import json
 import base64
 import google.generativeai as genai
@@ -287,7 +288,7 @@ def _gemini_analyze(image_path: str, ratio_name: str | None) -> dict | None:
 
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
 
         margins = SAFE_ZONE_MARGINS.get(ratio_name or "", {})
         if ratio_name == "1:1" or not margins:
@@ -383,10 +384,9 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
         elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
             mime = "image/webp"
 
-        response = model.generate_content([
-            {"mime_type": mime, "data": base64.b64encode(img_bytes).decode()},
-            prompt,
-        ])
+        import google.generativeai.types as gtypes
+        img_part = {"inline_data": {"mime_type": mime, "data": base64.b64encode(img_bytes).decode()}}
+        response = model.generate_content([img_part, prompt])
 
         raw = response.text.strip()
         if raw.startswith("```"):
@@ -394,7 +394,8 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
             raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
         return json.loads(raw)
 
-    except Exception:
+    except Exception as e:
+        print(f"[Gemini] error: {type(e).__name__}: {e}", file=sys.stderr)
         return None
 
 
