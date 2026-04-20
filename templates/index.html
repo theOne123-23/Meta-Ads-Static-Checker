@@ -6,428 +6,395 @@
   <title>Meta Ads Static Checker</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f2f5;color:#1c1e21;min-height:100vh;padding:32px 16px}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f6f9;color:#1a1a2e;min-height:100vh}
 
-    .header{text-align:center;margin-bottom:32px}
-    .header h1{font-size:26px;font-weight:800;color:#1877f2}
-    .header p{font-size:13px;color:#65676b;margin-top:4px}
+    /* ── Header ── */
+    .header{background:linear-gradient(135deg,#1877f2 0%,#0d5ed9 100%);padding:28px 20px;text-align:center;color:white}
+    .header h1{font-size:28px;font-weight:800;letter-spacing:-.5px}
+    .header p{font-size:14px;opacity:.85;margin-top:6px}
+    .header .badges{display:flex;justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+    .header .badge{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.3);border-radius:20px;padding:3px 12px;font-size:12px;font-weight:600}
 
-    /* Upload zone */
-    .upload-section{max-width:680px;margin:0 auto 28px}
-    .drop-area{border:2px dashed #1877f2;border-radius:14px;padding:40px 24px;text-align:center;cursor:pointer;background:white;transition:background .2s;position:relative}
-    .drop-area.drag-over,.drop-area:hover{background:#e7f0fd}
-    .drop-icon{font-size:44px;margin-bottom:10px}
-    .drop-area h2{font-size:16px;font-weight:700;color:#1877f2}
-    .drop-area p{font-size:13px;color:#65676b;margin-top:4px}
+    /* ── Upload ── */
+    .upload-wrap{max-width:700px;margin:28px auto;padding:0 16px}
+    .drop-area{background:white;border:2px dashed #1877f2;border-radius:16px;padding:36px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+    .drop-area:hover,.drop-area.drag-over{background:#eef4ff;border-color:#0d5ed9}
+    .drop-icon{font-size:48px;margin-bottom:12px}
+    .drop-area h2{font-size:18px;font-weight:700;color:#1877f2}
+    .drop-area p{font-size:13px;color:#65676b;margin-top:6px}
     input[type=file]{display:none}
 
-    .thumb-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-    .thumb-item{position:relative;width:80px;text-align:center}
-    .thumb-item img{width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e4e6eb}
-    .thumb-item .fname{font-size:10px;color:#65676b;margin-top:3px;word-break:break-all;line-height:1.3}
-    .thumb-item .remove-btn{position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:18px;text-align:center;padding:0}
+    .thumb-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px;justify-content:center}
+    .thumb-item{position:relative;width:76px}
+    .thumb-item img{width:76px;height:76px;object-fit:cover;border-radius:10px;border:2px solid #e0e7ff}
+    .thumb-item .fname{font-size:9px;color:#65676b;margin-top:3px;word-break:break-all;line-height:1.3;text-align:center}
+    .thumb-item .rm{position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:12px;cursor:pointer;line-height:18px;text-align:center;padding:0;font-weight:700}
 
-    .analyze-btn{display:block;width:100%;max-width:680px;margin:0 auto 32px;padding:14px;background:#1877f2;color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
-    .analyze-btn:hover{background:#166fe5}
+    .analyze-btn{display:block;width:calc(100% - 32px);max-width:700px;margin:0 auto 28px;padding:15px;background:linear-gradient(135deg,#1877f2,#0d5ed9);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;letter-spacing:.3px}
+    .analyze-btn:hover{opacity:.92}
     .analyze-btn:disabled{background:#bcc0c4;cursor:not-allowed}
 
-    /* Progress */
-    .progress-bar-wrap{max-width:680px;margin:0 auto 20px;display:none}
-    .progress-bar-bg{background:#e4e6eb;border-radius:8px;height:8px;overflow:hidden}
-    .progress-bar-fill{height:8px;background:#1877f2;border-radius:8px;transition:width .4s;width:0%}
-    .progress-label{font-size:12px;color:#65676b;text-align:center;margin-top:6px}
+    /* ── Progress ── */
+    .progress-wrap{max-width:700px;margin:0 auto 20px;padding:0 16px;display:none}
+    .progress-bg{background:#e4e6eb;border-radius:8px;height:6px;overflow:hidden}
+    .progress-fill{height:6px;background:linear-gradient(90deg,#1877f2,#22c55e);border-radius:8px;transition:width .5s;width:0%}
+    .progress-lbl{font-size:12px;color:#65676b;text-align:center;margin-top:8px}
 
-    /* Result cards */
-    #results{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+    /* ── Results ── */
+    #results{max-width:900px;margin:0 auto 40px;padding:0 16px;display:flex;flex-direction:column;gap:20px}
 
-    .result-card{background:white;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09);overflow:hidden}
-    .result-card-header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2f5;flex-wrap:wrap;gap:10px}
-    .result-card-header .fname{font-size:14px;font-weight:700;color:#1c1e21}
-    .result-card-header .meta-tags{display:flex;gap:6px;flex-wrap:wrap}
-    .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
-    .tag-ratio{background:#e7f0fd;color:#1877f2}
-    .tag-size{background:#f0f0f0;color:#444}
+    .result-card{background:white;border-radius:18px;box-shadow:0 4px 24px rgba(0,0,0,.08);overflow:hidden}
 
-    .result-card-body{display:grid;grid-template-columns:220px 1fr;gap:0}
-    @media(max-width:600px){.result-card-body{grid-template-columns:1fr}}
+    /* Card header */
+    .card-head{padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2f5;flex-wrap:wrap;gap:8px}
+    .card-head .fname{font-size:14px;font-weight:700;color:#1a1a2e;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tags{display:flex;gap:6px;flex-wrap:wrap}
+    .tag{padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700}
+    .tag-ratio{background:#dbeafe;color:#1d4ed8}
+    .tag-size{background:#f3f4f6;color:#374151}
+    .tag-err{background:#fee2e2;color:#b91c1c}
 
-    /* Left col — image + overlay */
-    .img-col{padding:18px;border-right:1px solid #f0f2f5;display:flex;flex-direction:column;align-items:center;gap:10px}
-    .img-col img{width:100%;border-radius:8px;border:1px solid #e4e6eb}
-    .overlay-toggle{font-size:11px;color:#1877f2;cursor:pointer;text-decoration:underline}
+    /* Card body: 2 col */
+    .card-body{display:grid;grid-template-columns:260px 1fr}
+    @media(max-width:640px){.card-body{grid-template-columns:1fr}}
 
-    /* Right col — analysis */
-    .analysis-col{padding:20px 22px;display:flex;flex-direction:column;gap:18px}
+    /* Left — image */
+    .img-col{padding:16px;border-right:1px solid #f0f2f5;display:flex;flex-direction:column;gap:10px}
+    .img-col img{width:100%;border-radius:10px;border:1px solid #e5e7eb;display:block}
+    .img-toggle{text-align:center;font-size:12px;color:#1877f2;cursor:pointer;text-decoration:underline}
 
-    /* Performance ring */
-    .perf-row{display:flex;align-items:center;gap:20px}
-    .ring-wrap{flex-shrink:0}
-    svg.ring{transform:rotate(-90deg)}
-    .ring-bg{fill:none;stroke:#e4e6eb;stroke-width:8}
-    .ring-fill{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s}
-    .ring-text{font-size:15px;font-weight:800;text-anchor:middle;dominant-baseline:central}
-    .ring-label{font-size:10px;text-anchor:middle;dominant-baseline:central;fill:#65676b}
+    /* Right — analysis */
+    .analysis-col{padding:20px;display:flex;flex-direction:column;gap:16px}
 
-    .perf-info h3{font-size:18px;font-weight:800;margin-bottom:2px}
-    .perf-info .sub{font-size:12px;color:#65676b}
-    .winning-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-top:6px}
-    .win-winning{background:#d4edda;color:#155724}
-    .win-promising{background:#d1ecf1;color:#0c5460}
-    .win-needs{background:#fff3cd;color:#856404}
-    .win-not{background:#f8d7da;color:#721c24}
+    /* Score row */
+    .score-row{display:flex;align-items:center;gap:16px}
+    .ring-wrap svg{transform:rotate(-90deg)}
+    .ring-bg{fill:none;stroke:#e5e7eb;stroke-width:9}
+    .ring-fill{fill:none;stroke-width:9;stroke-linecap:round;transition:stroke-dashoffset .8s ease}
 
-    /* Section */
-    .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#65676b;margin-bottom:8px}
+    .score-info h2{font-size:22px;font-weight:800;margin-bottom:2px}
+    .score-info .sub{font-size:12px;color:#65676b}
+    .verdict-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-top:8px}
+    .v-win{background:#dcfce7;color:#15803d}
+    .v-pro{background:#dbeafe;color:#1d4ed8}
+    .v-nw {background:#fef3c7;color:#92400e}
+    .v-nr {background:#fee2e2;color:#b91c1c}
 
-    .safe-zone-row{display:flex;gap:10px;align-items:flex-start}
-    .sz-badge{flex-shrink:0;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
-    .sz-pass{background:#d4edda;color:#155724}
-    .sz-fail{background:#f8d7da;color:#721c24}
-    .sz-text{font-size:12px;color:#444;line-height:1.5}
+    /* Analysis paragraph */
+    .analysis-box{background:#f8faff;border-left:3px solid #1877f2;padding:12px 14px;border-radius:0 8px 8px 0;font-size:13px;line-height:1.7;color:#374151}
 
-    .list-items{display:flex;flex-direction:column;gap:5px}
-    .list-item{display:flex;gap:8px;font-size:12px;line-height:1.5}
-    .list-item .dot{flex-shrink:0;margin-top:3px;width:7px;height:7px;border-radius:50%}
-    .dot-green{background:#22c55e}
-    .dot-red{background:#ef4444}
-    .dot-blue{background:#1877f2}
+    /* Safe zone */
+    .sz-row{display:flex;align-items:flex-start;gap:10px}
+    .sz-pill{flex-shrink:0;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700}
+    .sz-pass{background:#dcfce7;color:#15803d}
+    .sz-fail{background:#fee2e2;color:#b91c1c}
+    .sz-na  {background:#f3f4f6;color:#374151}
+    .sz-text{font-size:12px;color:#4b5563;line-height:1.5}
 
-    .improve-item{background:#f0f7ff;border-left:3px solid #1877f2;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;line-height:1.5;margin-bottom:5px}
+    /* Section title */
+    .sec{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#9ca3af;margin-bottom:6px}
 
-    .analysis-text{font-size:13px;color:#444;line-height:1.6;background:#f8f9fa;padding:12px;border-radius:8px}
+    /* Lists */
+    .item-list{display:flex;flex-direction:column;gap:5px}
+    .item{display:flex;gap:8px;font-size:12px;line-height:1.5;color:#374151}
+    .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+    .d-green{background:#22c55e}
+    .d-red{background:#ef4444}
 
-    .quality-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .q-item{background:#f8f9fa;border-radius:8px;padding:8px 10px}
-    .q-item .q-label{font-size:10px;color:#65676b;text-transform:uppercase;letter-spacing:.05em}
-    .q-item .q-val{font-size:13px;font-weight:700;margin-top:2px}
+    /* Improvements */
+    .imp-list{display:flex;flex-direction:column;gap:6px}
+    .imp{display:flex;gap:10px;background:#f0f7ff;border-radius:8px;padding:10px 12px;font-size:12px;line-height:1.5;color:#1e3a5f}
+    .imp-num{background:#1877f2;color:white;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
 
-    /* Error state */
-    .error-card{background:white;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09);padding:24px;text-align:center;color:#721c24}
+    /* Quality pills row */
+    .q-pills{display:flex;flex-wrap:wrap;gap:6px}
+    .q-pill{background:#f3f4f6;border-radius:8px;padding:5px 10px;font-size:11px;color:#374151}
+    .q-pill strong{color:#1a1a2e;margin-right:3px}
 
-    /* Skeleton loader */
-    .skeleton{background:linear-gradient(90deg,#f0f2f5 25%,#e4e6eb 50%,#f0f2f5 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:8px;height:20px;margin-bottom:8px}
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+    /* Text overlay explanation box */
+    .info-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:10px 12px;font-size:12px;color:#78350f;line-height:1.5}
+    .info-box strong{display:block;margin-bottom:2px}
   </style>
 </head>
 <body>
 
 <div class="header">
   <h1>Meta Ads Static Checker</h1>
-  <p>Upload multiple ad sizes — AI checks safe zone, quality, and predicts performance</p>
+  <p>Upload your ad images — AI checks size, safe zone &amp; predicts performance</p>
+  <div class="badges">
+    <span class="badge">1:1 Feed</span>
+    <span class="badge">9:16 Reels &amp; Stories</span>
+    <span class="badge">1.91:1 Landscape</span>
+  </div>
 </div>
 
-<div class="upload-section">
+<div class="upload-wrap">
   <div class="drop-area" id="dropArea">
     <div class="drop-icon">🖼️</div>
     <h2>Drop your ad images here</h2>
-    <p>Supports bulk upload — PNG, JPG, WEBP, GIF · max 30MB each</p>
-    <p style="margin-top:8px;font-size:12px;color:#1877f2;font-weight:600">Click anywhere to browse files</p>
-    <div class="thumb-grid" id="thumbGrid"></div>
+    <p>Bulk upload supported · PNG, JPG, WEBP, GIF · max 30 MB each</p>
+    <p style="margin-top:8px;font-size:12px;color:#1877f2;font-weight:600">or click to browse files</p>
+    <div class="thumb-row" id="thumbRow"></div>
   </div>
   <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp" multiple/>
 </div>
 
 <button class="analyze-btn" id="analyzeBtn" disabled>Analyze Ads</button>
 
-<div class="progress-bar-wrap" id="progressWrap">
-  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
-  <div class="progress-label" id="progressLabel">Analyzing…</div>
+<div class="progress-wrap" id="progressWrap">
+  <div class="progress-bg"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-lbl" id="progressLbl">Analyzing…</div>
 </div>
 
 <div id="results"></div>
 
 <script>
-const dropArea   = document.getElementById('dropArea');
-const fileInput  = document.getElementById('fileInput');
-const thumbGrid  = document.getElementById('thumbGrid');
-const analyzeBtn = document.getElementById('analyzeBtn');
-const progressWrap = document.getElementById('progressWrap');
-const progressFill = document.getElementById('progressFill');
-const progressLabel = document.getElementById('progressLabel');
-const resultsEl  = document.getElementById('results');
-let selectedFiles = [];
+const dropArea=document.getElementById('dropArea'),fileInput=document.getElementById('fileInput'),
+      thumbRow=document.getElementById('thumbRow'),analyzeBtn=document.getElementById('analyzeBtn'),
+      progressWrap=document.getElementById('progressWrap'),progressFill=document.getElementById('progressFill'),
+      progressLbl=document.getElementById('progressLbl'),resultsEl=document.getElementById('results');
+let files=[];
 
-dropArea.addEventListener('click', e => { if(e.target.classList.contains('remove-btn')) return; fileInput.click(); });
-dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over'); });
-dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
-dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.classList.remove('drag-over'); addFiles(Array.from(e.dataTransfer.files)); });
-fileInput.addEventListener('change', () => { addFiles(Array.from(fileInput.files)); fileInput.value=''; });
+dropArea.addEventListener('click',e=>{if(!e.target.classList.contains('rm'))fileInput.click()});
+dropArea.addEventListener('dragover',e=>{e.preventDefault();dropArea.classList.add('drag-over')});
+dropArea.addEventListener('dragleave',()=>dropArea.classList.remove('drag-over'));
+dropArea.addEventListener('drop',e=>{e.preventDefault();dropArea.classList.remove('drag-over');addFiles([...e.dataTransfer.files])});
+fileInput.addEventListener('change',()=>{addFiles([...fileInput.files]);fileInput.value=''});
 
-function addFiles(files) {
-  const allowed = ['image/png','image/jpeg','image/gif','image/webp'];
-  files.filter(f => allowed.includes(f.type)).forEach(f => {
-    if (!selectedFiles.find(x => x.name===f.name && x.size===f.size)) selectedFiles.push(f);
+function addFiles(newFiles){
+  const ok=['image/png','image/jpeg','image/gif','image/webp'];
+  newFiles.filter(f=>ok.includes(f.type)).forEach(f=>{
+    if(!files.find(x=>x.name===f.name&&x.size===f.size))files.push(f);
   });
   renderThumbs();
-  analyzeBtn.disabled = selectedFiles.length === 0;
+  analyzeBtn.disabled=files.length===0;
 }
-
-function removeFile(idx) {
-  selectedFiles.splice(idx, 1);
-  renderThumbs();
-  analyzeBtn.disabled = selectedFiles.length === 0;
-}
-
-function renderThumbs() {
-  thumbGrid.innerHTML = selectedFiles.map((f,i) => {
-    const url = URL.createObjectURL(f);
-    return `<div class="thumb-item">
-      <button class="remove-btn" onclick="removeFile(${i})">×</button>
-      <img src="${url}" alt="${f.name}"/>
+function removeFile(i){files.splice(i,1);renderThumbs();analyzeBtn.disabled=files.length===0}
+function renderThumbs(){
+  thumbRow.innerHTML=files.map((f,i)=>`
+    <div class="thumb-item">
+      <button class="rm" onclick="removeFile(${i})">×</button>
+      <img src="${URL.createObjectURL(f)}" alt="${f.name}"/>
       <div class="fname">${f.name}</div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
-analyzeBtn.addEventListener('click', async () => {
-  if (!selectedFiles.length) return;
-  analyzeBtn.disabled = true;
-  resultsEl.innerHTML = '';
-  progressWrap.style.display = 'block';
-  progressFill.style.width = '0%';
-  progressLabel.textContent = `Analyzing ${selectedFiles.length} ad${selectedFiles.length>1?'s':''}… (this may take 10–30 seconds)`;
+analyzeBtn.addEventListener('click',async()=>{
+  if(!files.length)return;
+  analyzeBtn.disabled=true;
+  resultsEl.innerHTML='';
+  progressWrap.style.display='block';
+  progressFill.style.width='0%';
+  progressLbl.textContent=`Analyzing ${files.length} ad${files.length>1?'s':''}… please wait`;
 
-  // Show skeleton cards
-  resultsEl.innerHTML = selectedFiles.map(f => `
+  // Skeleton
+  resultsEl.innerHTML=files.map(f=>`
     <div class="result-card">
-      <div class="result-card-header">
-        <span class="fname">${f.name}</span>
-        <div class="meta-tags"><div class="skeleton" style="width:60px;height:20px"></div></div>
+      <div class="card-head"><span class="fname">${f.name}</span></div>
+      <div style="padding:24px">
+        ${skel()} ${skel('60%')} ${skel('80%')}
       </div>
-      <div style="padding:24px"><div class="skeleton"></div><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:50%"></div></div>
     </div>`).join('');
 
-  const fd = new FormData();
-  selectedFiles.forEach(f => fd.append('files', f));
+  const fd=new FormData();
+  files.forEach(f=>fd.append('files',f));
 
-  try {
-    // Animate progress
-    let prog = 10;
-    const ticker = setInterval(() => {
-      prog = Math.min(prog + Math.random() * 8, 85);
-      progressFill.style.width = prog + '%';
-    }, 800);
+  let prog=10;
+  const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*9,88);progressFill.style.width=prog+'%'},700);
 
-    const res = await fetch('/check-bulk', { method: 'POST', body: fd });
-    const data = await res.json();
-
-    clearInterval(ticker);
-    progressFill.style.width = '100%';
-    progressLabel.textContent = 'Done!';
-    setTimeout(() => { progressWrap.style.display = 'none'; }, 1200);
-
-    if (data.error) {
-      resultsEl.innerHTML = `<div class="error-card">Error: ${data.error}</div>`;
-      return;
-    }
+  try{
+    const res=await fetch('/check-bulk',{method:'POST',body:fd});
+    const data=await res.json();
+    clearInterval(tick);
+    progressFill.style.width='100%';
+    progressLbl.textContent='Done!';
+    setTimeout(()=>progressWrap.style.display='none',1000);
+    if(data.error){resultsEl.innerHTML=`<p style="color:red;text-align:center">${data.error}</p>`;return}
     renderResults(data.results);
-  } catch(err) {
-    progressWrap.style.display = 'none';
-    resultsEl.innerHTML = `<div class="error-card">Something went wrong. Please try again.</div>`;
-  } finally {
-    analyzeBtn.disabled = false;
-  }
+  }catch(e){
+    clearInterval(tick);
+    progressWrap.style.display='none';
+    resultsEl.innerHTML='<p style="color:red;text-align:center">Something went wrong. Please try again.</p>';
+  }finally{analyzeBtn.disabled=false}
 });
 
-function renderResults(results) {
-  resultsEl.innerHTML = results.map((r, idx) => renderCard(r, idx)).join('');
+function skel(w='100%'){return`<div style="background:linear-gradient(90deg,#f0f2f5 25%,#e4e6eb 50%,#f0f2f5 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;height:16px;border-radius:6px;margin-bottom:10px;width:${w}"></div>`}
+
+function renderResults(results){
+  resultsEl.innerHTML=results.map((r,i)=>renderCard(r,i)).join('');
+  results.forEach((r,i)=>{
+    const f=files.find(x=>x.name===r.filename);
+    if(f){const el=document.getElementById(`orig-${i}`);if(el)el.src=URL.createObjectURL(f)}
+  });
 }
 
-function renderCard(r, idx) {
-  if (r.error) return `<div class="error-card"><strong>${r.filename}</strong><br>${r.error}</div>`;
+function renderCard(r,idx){
+  if(r.error)return`<div class="result-card" style="padding:20px;color:#b91c1c">${r.filename}: ${r.error}</div>`;
+  const ai=r.ai||{},sz=r.safe_zone,size=r.size||{};
+  const ratio=size.detected_ratio||'?';
+  const dims=(size.width&&size.height)?`${size.width}×${size.height}px`:'';
 
-  const size = r.size || {};
-  const ai   = r.ai   || {};
-  const sz   = r.safe_zone;
-  const aiOk = ai.performance_score != null;
+  // Performance ring
+  const perf=ai.performance_score??0;
+  const rc=perf>=70?'#22c55e':perf>=45?'#f59e0b':'#ef4444';
+  const circ=2*Math.PI*32;
+  const off=circ-(perf/100)*circ;
 
-  const ratio = size.detected_ratio || '?';
-  const dims  = (size.width && size.height) ? `${size.width}×${size.height}` : '';
+  // Verdict
+  const vm={'Winning Ad':['v-win','🏆 Winning Ad'],'Promising':['v-pro','✨ Promising'],'Needs Work':['v-nw','⚠️ Needs Work'],'Not Ready':['v-nr','✗ Not Ready']};
+  const [vc,vt]=vm[ai.winning_verdict]||['v-nw',ai.winning_verdict||'—'];
 
-  // Performance ring — only show real data if AI worked
-  const perf = aiOk ? (ai.performance_score ?? 0) : null;
-  const ringColor = perf === null ? '#bcc0c4' : perf >= 70 ? '#22c55e' : perf >= 45 ? '#f59e0b' : '#ef4444';
-  const circumference = 2 * Math.PI * 30;
-  const offset = perf === null ? circumference : circumference - (perf / 100) * circumference;
+  // Safe zone
+  const is1x1=ratio==='1:1';
+  const aiSZ=ai.safe_zone||{};
+  const szVerdict=aiSZ.verdict||(is1x1?'N/A':'—');
+  const szExplain=aiSZ.explanation||(is1x1?'1:1 ratio — entire image is fully visible in feed. No safe zone restrictions apply.':'');
+  const szPass=szVerdict==='PASS'||szVerdict==='N/A';
 
-  // Winning verdict
-  const verdictMap = {
-    'Winning Ad':  ['win-winning', '🏆 Winning Ad'],
-    'Promising':   ['win-promising', '✨ Promising'],
-    'Needs Work':  ['win-needs', '⚠ Needs Work'],
-    'Not Ready':   ['win-not', '✗ Not Ready'],
-  };
-  const [badgeCls, badgeText] = aiOk
-    ? (verdictMap[ai.winning_verdict] || ['win-needs', ai.winning_verdict || '—'])
-    : ['win-needs', '— Awaiting AI'];
+  // Overlay: show by default for non-1:1
+  const hasOverlay=!!(sz?.overlay_image);
+  const overlayDefault=!is1x1&&hasOverlay;
+  const imgSrc=overlayDefault?`data:image/jpeg;base64,${sz.overlay_image}`:'';
 
-  // Safe zone — ONLY use AI verdict, never pixel fallback
-  const szData     = ai.safe_zone;
-  const showSZ     = ratio !== '1:1';  // 1:1 needs no safe zone
-  const szVerdict  = szData?.verdict || (aiOk ? 'PASS' : null);
-  const szExplain  = szData?.explanation || '';
-  const szElements = szData?.elements_in_danger_zone || [];
-  const szPass     = szVerdict === 'PASS';
-
-  // Overlay image (visual only, not used for verdict)
-  const overlayImg = sz?.overlay_image
-    ? `<img id="overlay-${idx}" src="data:image/png;base64,${sz.overlay_image}" alt="Safe zone overlay" style="display:none;width:100%;border-radius:8px;border:1px solid #e4e6eb"/>
-       <span class="overlay-toggle" onclick="toggleOverlay(${idx})">Show safe zone overlay</span>`
-    : '';
-
-  // Original image preview
-  const origImg = `<img id="orig-${idx}" src="" alt="Ad preview" style="width:100%;border-radius:8px;border:1px solid #e4e6eb"/>`;
-
-  // Quality grid
-  const q = ai.quality || {};
-  const qualityGrid = aiOk && q.score != null ? `
+  // Quality pills
+  const q=ai.quality||{};
+  const pills=q.score!=null?`
     <div>
-      <div class="section-title">Creative Quality Signals</div>
-      <div class="quality-grid">
-        ${qItem('Quality Score', q.score + '/100')}
-        ${qItem('Thumb-Stop', q.thumb_stop_power || '—')}
-        ${qItem('Text Clarity', q.text_clarity || '—')}
-        ${qItem('Contrast', q.contrast || '—')}
-        ${qItem('Clutter', q.clutter_level || '—')}
-        ${qItem('Value Prop Visible', q.value_prop_visible ? 'Yes ✓' : 'No ✗')}
+      <div class="sec">Creative Signals</div>
+      <div class="q-pills">
+        <span class="q-pill"><strong>Score</strong>${q.score}/100</span>
+        <span class="q-pill"><strong>Thumb-Stop</strong>${q.thumb_stop_power||'—'}</span>
+        <span class="q-pill"><strong>Text</strong>${q.text_clarity||'—'}</span>
+        <span class="q-pill"><strong>Contrast</strong>${q.contrast||'—'}</span>
+        <span class="q-pill"><strong>Clutter</strong>${q.clutter_level||'—'}</span>
       </div>
-    </div>` : '';
+    </div>`:''
 
-  // AI error block
-  const aiErrorBlock = !aiOk ? `
-    <div style="background:#fff3cd;border-left:4px solid #ffc107;padding:14px 16px;border-radius:6px;font-size:13px;line-height:1.6">
-      <strong>AI Analysis not available</strong><br>
-      The <code>ANTHROPIC_API_KEY</code> is not configured on your Render service.<br><br>
-      <strong>To fix:</strong> Go to render.com → your service → <em>Environment</em> tab → Add variable:<br>
-      <code>ANTHROPIC_API_KEY = your-key-here</code><br><br>
-      Get your key at <strong>console.anthropic.com</strong> → API Keys → Create Key (free credits available).
-    </div>` : '';
+  // Text overlay explanation
+  const txtPct=ai.quality?.score!=null?null:null; // handled in improvements
 
-  return `
-  <div class="result-card" data-idx="${idx}">
-    <div class="result-card-header">
+  return`
+  <div class="result-card">
+    <div class="card-head">
       <span class="fname">${r.filename}</span>
-      <div class="meta-tags">
-        ${ratio !== '?' ? `<span class="tag tag-ratio">${ratio}</span>` : ''}
-        ${dims ? `<span class="tag tag-size">${dims}px</span>` : ''}
-        ${!size.passed ? `<span class="tag" style="background:#f8d7da;color:#721c24">Size Issue</span>` : ''}
+      <div class="tags">
+        ${ratio!=='?'?`<span class="tag tag-ratio">${ratio}</span>`:''}
+        ${dims?`<span class="tag tag-size">${dims}</span>`:''}
+        ${!size.passed?`<span class="tag tag-err">Size Issue</span>`:''}
       </div>
     </div>
 
-    <div class="result-card-body">
-
-      <!-- Left: image -->
+    <div class="card-body">
+      <!-- Image col -->
       <div class="img-col">
-        ${origImg}
-        ${overlayImg}
+        <img id="orig-${idx}" src="${imgSrc}" alt="Ad preview"/>
+        ${hasOverlay?`
+        <div class="img-toggle" id="toggle-${idx}" onclick="toggleImg(${idx})">
+          ${overlayDefault?'Show original image':'Show safe zone overlay'}
+        </div>
+        <div style="font-size:10px;color:#9ca3af;text-align:center;margin-top:-4px">
+          ${!is1x1?'🔴 Danger zone &nbsp; 🟠 Detected text &nbsp; 🟢 Safe zone':''}
+        </div>`:''}
       </div>
 
-      <!-- Right: analysis -->
+      <!-- Analysis col -->
       <div class="analysis-col">
 
-        <!-- Performance ring + verdict -->
-        <div class="perf-row">
+        <!-- Score + verdict -->
+        <div class="score-row">
           <div class="ring-wrap">
-            <svg class="ring" width="80" height="80" viewBox="0 0 80 80">
-              <circle class="ring-bg" cx="40" cy="40" r="30"/>
-              <circle class="ring-fill" cx="40" cy="40" r="30"
-                stroke="${ringColor}"
-                stroke-dasharray="${circumference}"
-                stroke-dashoffset="${offset}"/>
-              <text class="ring-text" x="40" y="37" fill="${ringColor}" font-size="15" font-weight="800">${perf !== null ? perf+'%' : '?'}</text>
-              <text class="ring-label" x="40" y="52" fill="#65676b" font-size="9">Performance</text>
+            <svg width="80" height="80" viewBox="0 0 80 80">
+              <circle class="ring-bg" cx="40" cy="40" r="32"/>
+              <circle class="ring-fill" cx="40" cy="40" r="32"
+                stroke="${rc}" stroke-dasharray="${circ}" stroke-dashoffset="${off}"/>
+              <text x="40" y="38" text-anchor="middle" dominant-baseline="central"
+                fill="${rc}" font-size="16" font-weight="800"
+                style="transform:rotate(90deg);transform-origin:40px 40px">${perf}%</text>
+              <text x="40" y="54" text-anchor="middle" fill="#9ca3af" font-size="9"
+                style="transform:rotate(90deg);transform-origin:40px 40px">Performance</text>
             </svg>
           </div>
-          <div class="perf-info">
-            <h3 style="color:${ringColor}">${perf !== null ? perfLabel(perf) : 'No AI yet'}</h3>
+          <div class="score-info">
+            <h2 style="color:${rc}">${perfLabel(perf)}</h2>
             <div class="sub">Predicted Meta ad performance</div>
-            <span class="winning-badge ${badgeCls}">${badgeText}</span>
+            <span class="verdict-badge ${vc}">${vt}</span>
           </div>
         </div>
 
-        <!-- AI Analysis -->
-        ${aiOk && ai.analysis ? `<div class="analysis-text">${ai.analysis}</div>` : ''}
+        <!-- AI analysis -->
+        ${ai.analysis?`<div class="analysis-box">${ai.analysis}</div>`:''}
 
-        <!-- Safe Zone — only for non-1:1 ratios -->
-        ${showSZ ? `<div>
-          <div class="section-title">Safe Zone Check</div>
-          ${szVerdict ? `
-          <div class="safe-zone-row">
-            <span class="sz-badge ${szPass ? 'sz-pass' : 'sz-fail'}">${szPass ? '✓ PASS' : '✗ FAIL'}</span>
-            <span class="sz-text">${szExplain || (szPass ? 'All key content is within the safe zone.' : 'Content detected in danger zones.')}</span>
+        <!-- Safe zone -->
+        <div>
+          <div class="sec">Safe Zone Check</div>
+          <div class="sz-row">
+            <span class="sz-pill ${szPass?is1x1?'sz-na':'sz-pass':'sz-fail'}">${szPass?(is1x1?'N/A':'✓ PASS'):'✗ FAIL'}</span>
+            <span class="sz-text">${szExplain||(szPass?'All key content is within the safe zone.':'Content found in danger zones — see overlay.')}</span>
           </div>
-          ${szElements.length ? `<div class="list-items" style="margin-top:8px">${szElements.map(e=>`<div class="list-item"><span class="dot dot-red"></span><span>${e}</span></div>`).join('')}</div>` : ''}
-          ` : `<div class="sz-text" style="color:#999">Safe zone analysis requires AI — add API key to enable.</div>`}
-        </div>` : `<div>
-          <div class="section-title">Safe Zone Check</div>
-          <div class="safe-zone-row">
-            <span class="sz-badge sz-pass">✓ N/A</span>
-            <span class="sz-text">1:1 ratio — the entire image is fully visible in feed. No safe zone restrictions apply.</span>
-          </div>
-        </div>`}
+          ${(aiSZ.elements_in_danger_zone||[]).length?`<div class="item-list" style="margin-top:8px">${(aiSZ.elements_in_danger_zone||[]).map(e=>`<div class="item"><span class="dot d-red"></span><span>${e}</span></div>`).join('')}</div>`:''}
+        </div>
 
         <!-- Quality signals -->
-        ${qualityGrid}
+        ${pills}
 
         <!-- Strengths -->
-        ${aiOk && (ai.strengths||[]).length ? `
+        ${(ai.strengths||[]).length?`
         <div>
-          <div class="section-title">What's Working</div>
-          <div class="list-items">${(ai.strengths||[]).map(s=>`<div class="list-item"><span class="dot dot-green"></span><span>${s}</span></div>`).join('')}</div>
-        </div>` : ''}
+          <div class="sec">What's Working</div>
+          <div class="item-list">${(ai.strengths||[]).map(s=>`<div class="item"><span class="dot d-green"></span><span>${s}</span></div>`).join('')}</div>
+        </div>`:''}
 
         <!-- Issues -->
-        ${aiOk && (ai.issues||[]).length ? `
+        ${(ai.issues||[]).length?`
         <div>
-          <div class="section-title">Issues Found</div>
-          <div class="list-items">${(ai.issues||[]).map(s=>`<div class="list-item"><span class="dot dot-red"></span><span>${s}</span></div>`).join('')}</div>
-        </div>` : ''}
+          <div class="sec">Issues Found</div>
+          <div class="item-list">${(ai.issues||[]).map(s=>`<div class="item"><span class="dot d-red"></span><span>${s}</span></div>`).join('')}</div>
+        </div>`:''}
 
         <!-- Improvements -->
-        ${(ai.improvements||[]).length ? `
+        ${(ai.improvements||[]).length?`
         <div>
-          <div class="section-title">How to Improve</div>
-          ${(ai.improvements||[]).map((imp,i)=>`<div class="improve-item"><strong>${i+1}.</strong> ${imp}</div>`).join('')}
-        </div>` : ''}
+          <div class="sec">How to Improve</div>
+          <div class="imp-list">${(ai.improvements||[]).map((t,i)=>`<div class="imp"><span class="imp-num">${i+1}</span><span>${t}</span></div>`).join('')}</div>
+        </div>`:''}
 
       </div>
     </div>
   </div>`;
 }
 
-function qItem(label, val) {
-  return `<div class="q-item"><div class="q-label">${label}</div><div class="q-val">${val}</div></div>`;
+function perfLabel(p){
+  if(p>=75)return'High Performer';
+  if(p>=50)return'Average';
+  if(p>=30)return'Below Average';
+  return'Low Performer';
 }
 
-function perfLabel(p) {
-  if (p >= 75) return 'High Performer';
-  if (p >= 50) return 'Average';
-  if (p >= 30) return 'Below Average';
-  return 'Low Performer';
+function toggleImg(idx){
+  const img=document.getElementById(`orig-${idx}`);
+  const btn=document.getElementById(`toggle-${idx}`);
+  const r=window._resultData?.[idx];
+  const sz=r?.safe_zone;
+  const overlayActive=img.dataset.mode!=='orig';
+  if(overlayActive){
+    const f=files.find(x=>x.name===r?.filename);
+    if(f)img.src=URL.createObjectURL(f);
+    img.dataset.mode='orig';
+    btn.textContent='Show safe zone overlay';
+  }else{
+    if(sz?.overlay_image)img.src=`data:image/jpeg;base64,${sz.overlay_image}`;
+    img.dataset.mode='overlay';
+    btn.textContent='Show original image';
+  }
 }
 
-function toggleOverlay(idx) {
-  const orig    = document.getElementById(`orig-${idx}`);
-  const overlay = document.getElementById(`overlay-${idx}`);
-  const btn     = overlay?.nextElementSibling;
-  if (!overlay) return;
-  const showing = overlay.style.display !== 'none';
-  overlay.style.display = showing ? 'none' : 'block';
-  orig.style.display    = showing ? 'block' : 'none';
-  if (btn) btn.textContent = showing ? 'Show safe zone overlay' : 'Show original';
-}
-
-// After results render, set original image srcs from files
-function renderResults(results) {
-  resultsEl.innerHTML = results.map((r, idx) => renderCard(r, idx)).join('');
-  results.forEach((r, idx) => {
-    const file = selectedFiles.find(f => f.name === r.filename);
-    if (file) {
-      const origEl = document.getElementById(`orig-${idx}`);
-      if (origEl) origEl.src = URL.createObjectURL(file);
-    }
-  });
+// Store result data for toggle
+const _orig=renderResults;
+function renderResults(results){
+  window._resultData=results;
+  _orig(results);
 }
 </script>
+<style>@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}</style>
 </body>
 </html>
