@@ -6,317 +6,404 @@
   <title>Meta Ads Static Checker</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f2f5;color:#1c1e21;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:40px 16px}
-    h1{font-size:24px;font-weight:700;color:#1877f2;margin-bottom:4px}
-    .subtitle{font-size:13px;color:#65676b;margin-bottom:28px;text-align:center}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#f0f2f5;color:#1c1e21;min-height:100vh;padding:32px 16px}
 
-    .upload-box{width:100%;max-width:560px;background:white;border-radius:12px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,.1)}
-    .drop-area{border:2px dashed #1877f2;border-radius:8px;padding:32px 20px;cursor:pointer;transition:background .2s;text-align:center}
-    .drop-area:hover,.drop-area.drag-over{background:#e7f0fd}
-    .drop-area .icon{font-size:36px}
-    .drop-area p{font-size:13px;color:#65676b;margin-top:6px}
+    .header{text-align:center;margin-bottom:32px}
+    .header h1{font-size:26px;font-weight:800;color:#1877f2}
+    .header p{font-size:13px;color:#65676b;margin-top:4px}
+
+    /* Upload zone */
+    .upload-section{max-width:680px;margin:0 auto 28px}
+    .drop-area{border:2px dashed #1877f2;border-radius:14px;padding:40px 24px;text-align:center;cursor:pointer;background:white;transition:background .2s;position:relative}
+    .drop-area.drag-over,.drop-area:hover{background:#e7f0fd}
+    .drop-icon{font-size:44px;margin-bottom:10px}
+    .drop-area h2{font-size:16px;font-weight:700;color:#1877f2}
+    .drop-area p{font-size:13px;color:#65676b;margin-top:4px}
     input[type=file]{display:none}
-    #preview{margin-top:14px;max-width:100%;max-height:160px;border-radius:8px;display:none;object-fit:contain}
 
-    .field-group{margin-top:18px}
-    .field-group label{display:block;font-size:13px;font-weight:600;color:#444;margin-bottom:4px}
-    .field-group input,.field-group textarea{width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;resize:vertical}
-    .field-group .hint{font-size:11px;color:#999;margin-top:3px}
-    .char-counter{font-size:11px;text-align:right;margin-top:2px;color:#999}
-    .char-counter.over{color:#dc3545;font-weight:700}
+    .thumb-grid{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+    .thumb-item{position:relative;width:80px;text-align:center}
+    .thumb-item img{width:80px;height:80px;object-fit:cover;border-radius:8px;border:2px solid #e4e6eb}
+    .thumb-item .fname{font-size:10px;color:#65676b;margin-top:3px;word-break:break-all;line-height:1.3}
+    .thumb-item .remove-btn{position:absolute;top:-6px;right:-6px;background:#ef4444;color:white;border:none;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;line-height:18px;text-align:center;padding:0}
 
-    button.check-btn{margin-top:18px;width:100%;padding:12px;background:#1877f2;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .2s}
-    button.check-btn:hover{background:#166fe5}
-    button.check-btn:disabled{background:#bcc0c4;cursor:not-allowed}
-    #loading{display:none;color:#65676b;font-size:13px;margin-top:10px;text-align:center}
+    .analyze-btn{display:block;width:100%;max-width:680px;margin:0 auto 32px;padding:14px;background:#1877f2;color:white;border:none;border-radius:10px;font-size:16px;font-weight:700;cursor:pointer;transition:background .2s}
+    .analyze-btn:hover{background:#166fe5}
+    .analyze-btn:disabled{background:#bcc0c4;cursor:not-allowed}
 
-    #results{width:100%;max-width:560px;margin-top:20px}
-
-    /* Score card */
-    .score-card{background:white;border-radius:12px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,.1);margin-bottom:14px;text-align:center}
-    .score-ring{width:100px;height:100px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;margin:8px auto;border:6px solid}
-    .score-label{font-size:13px;color:#65676b;margin-top:4px}
+    /* Progress */
+    .progress-bar-wrap{max-width:680px;margin:0 auto 20px;display:none}
+    .progress-bar-bg{background:#e4e6eb;border-radius:8px;height:8px;overflow:hidden}
+    .progress-bar-fill{height:8px;background:#1877f2;border-radius:8px;transition:width .4s;width:0%}
+    .progress-label{font-size:12px;color:#65676b;text-align:center;margin-top:6px}
 
     /* Result cards */
-    .card{background:white;border-radius:12px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.1);margin-bottom:14px}
-    .card h2{font-size:12px;font-weight:700;color:#65676b;text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
-    .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:12px}
-    .pass{background:#d4edda;color:#155724}
-    .fail{background:#f8d7da;color:#721c24}
-    .warn{background:#fff3cd;color:#856404}
-    .result-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid #f0f2f5;font-size:13px}
-    .result-row:last-child{border-bottom:none}
-    .result-row .lbl{color:#65676b}
-    .result-row .val{font-weight:600}
-    .bar-wrap{background:#e9ecef;border-radius:4px;height:8px;margin-top:6px;overflow:hidden}
-    .bar-fill{height:8px;border-radius:4px;transition:width .4s}
+    #results{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
 
-    .tag-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:3px}
-    .tag{background:#e7f0fd;color:#1877f2;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px}
+    .result-card{background:white;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09);overflow:hidden}
+    .result-card-header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f0f2f5;flex-wrap:wrap;gap:10px}
+    .result-card-header .fname{font-size:14px;font-weight:700;color:#1c1e21}
+    .result-card-header .meta-tags{display:flex;gap:6px;flex-wrap:wrap}
+    .tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+    .tag-ratio{background:#e7f0fd;color:#1877f2}
+    .tag-size{background:#f0f0f0;color:#444}
 
-    .alert{padding:9px 12px;border-radius:6px;font-size:12px;margin-bottom:7px;line-height:1.5}
-    .a-warn{background:#fff3cd;border-left:4px solid #ffc107}
-    .a-info{background:#d1ecf1;border-left:4px solid #17a2b8}
-    .a-err{background:#f8d7da;border-left:4px solid #dc3545}
-    .a-ok{background:#d4edda;border-left:4px solid #28a745}
+    .result-card-body{display:grid;grid-template-columns:220px 1fr;gap:0}
+    @media(max-width:600px){.result-card-body{grid-template-columns:1fr}}
 
-    .overlay-img{width:100%;border-radius:8px;margin-top:10px;border:1px solid #e4e6eb}
-    .legend{display:flex;gap:14px;margin-top:8px;font-size:11px;color:#65676b}
-    .ldot{width:11px;height:11px;border-radius:2px;display:inline-block;margin-right:3px;vertical-align:middle}
+    /* Left col — image + overlay */
+    .img-col{padding:18px;border-right:1px solid #f0f2f5;display:flex;flex-direction:column;align-items:center;gap:10px}
+    .img-col img{width:100%;border-radius:8px;border:1px solid #e4e6eb}
+    .overlay-toggle{font-size:11px;color:#1877f2;cursor:pointer;text-decoration:underline}
 
-    /* Checklist */
-    .checklist{margin-top:4px}
-    .cl-section{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin:10px 0 4px;color:#65676b}
-    .cl-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;padding:5px 0;border-bottom:1px solid #f5f5f5;line-height:1.4}
-    .cl-item:last-child{border-bottom:none}
-    .cl-icon{flex-shrink:0;margin-top:1px}
+    /* Right col — analysis */
+    .analysis-col{padding:20px 22px;display:flex;flex-direction:column;gap:18px}
+
+    /* Performance ring */
+    .perf-row{display:flex;align-items:center;gap:20px}
+    .ring-wrap{flex-shrink:0}
+    svg.ring{transform:rotate(-90deg)}
+    .ring-bg{fill:none;stroke:#e4e6eb;stroke-width:8}
+    .ring-fill{fill:none;stroke-width:8;stroke-linecap:round;transition:stroke-dashoffset .6s}
+    .ring-text{font-size:15px;font-weight:800;text-anchor:middle;dominant-baseline:central}
+    .ring-label{font-size:10px;text-anchor:middle;dominant-baseline:central;fill:#65676b}
+
+    .perf-info h3{font-size:18px;font-weight:800;margin-bottom:2px}
+    .perf-info .sub{font-size:12px;color:#65676b}
+    .winning-badge{display:inline-block;padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-top:6px}
+    .win-winning{background:#d4edda;color:#155724}
+    .win-promising{background:#d1ecf1;color:#0c5460}
+    .win-needs{background:#fff3cd;color:#856404}
+    .win-not{background:#f8d7da;color:#721c24}
+
+    /* Section */
+    .section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#65676b;margin-bottom:8px}
+
+    .safe-zone-row{display:flex;gap:10px;align-items:flex-start}
+    .sz-badge{flex-shrink:0;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+    .sz-pass{background:#d4edda;color:#155724}
+    .sz-fail{background:#f8d7da;color:#721c24}
+    .sz-text{font-size:12px;color:#444;line-height:1.5}
+
+    .list-items{display:flex;flex-direction:column;gap:5px}
+    .list-item{display:flex;gap:8px;font-size:12px;line-height:1.5}
+    .list-item .dot{flex-shrink:0;margin-top:3px;width:7px;height:7px;border-radius:50%}
+    .dot-green{background:#22c55e}
+    .dot-red{background:#ef4444}
+    .dot-blue{background:#1877f2}
+
+    .improve-item{background:#f0f7ff;border-left:3px solid #1877f2;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;line-height:1.5;margin-bottom:5px}
+
+    .analysis-text{font-size:13px;color:#444;line-height:1.6;background:#f8f9fa;padding:12px;border-radius:8px}
+
+    .quality-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .q-item{background:#f8f9fa;border-radius:8px;padding:8px 10px}
+    .q-item .q-label{font-size:10px;color:#65676b;text-transform:uppercase;letter-spacing:.05em}
+    .q-item .q-val{font-size:13px;font-weight:700;margin-top:2px}
+
+    /* Error state */
+    .error-card{background:white;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09);padding:24px;text-align:center;color:#721c24}
+
+    /* Skeleton loader */
+    .skeleton{background:linear-gradient(90deg,#f0f2f5 25%,#e4e6eb 50%,#f0f2f5 75%);background-size:200% 100%;animation:shimmer 1.2s infinite;border-radius:8px;height:20px;margin-bottom:8px}
+    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
   </style>
 </head>
 <body>
 
-<h1>Meta Ads Static Checker</h1>
-<p class="subtitle">Size · Safe Zone · Image Quality · Policy Compliance · Andromeda Score</p>
+<div class="header">
+  <h1>Meta Ads Static Checker</h1>
+  <p>Upload multiple ad sizes — AI checks safe zone, quality, and predicts performance</p>
+</div>
 
-<div class="upload-box">
+<div class="upload-section">
   <div class="drop-area" id="dropArea">
-    <div class="icon">🖼️</div>
-    <p><strong>Click to upload</strong> or drag &amp; drop your ad image</p>
-    <p>PNG · JPG · GIF · WEBP — max 30 MB</p>
+    <div class="drop-icon">🖼️</div>
+    <h2>Drop your ad images here</h2>
+    <p>Supports bulk upload — PNG, JPG, WEBP, GIF · max 30MB each</p>
+    <p style="margin-top:8px;font-size:12px;color:#1877f2;font-weight:600">Click anywhere to browse files</p>
+    <div class="thumb-grid" id="thumbGrid"></div>
   </div>
-  <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp"/>
-  <img id="preview" alt="Preview"/>
+  <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp" multiple/>
+</div>
 
-  <div class="field-group">
-    <label for="headline">Ad Headline <span style="font-weight:400;color:#999">(optional)</span></label>
-    <input type="text" id="headline" placeholder="e.g. Shop Now — 50% Off Today Only" maxlength="200"/>
-    <div class="char-counter" id="hCounter">0 / 40 recommended</div>
-  </div>
+<button class="analyze-btn" id="analyzeBtn" disabled>Analyze Ads</button>
 
-  <div class="field-group">
-    <label for="primaryText">Primary Text <span style="font-weight:400;color:#999">(optional)</span></label>
-    <textarea id="primaryText" rows="3" placeholder="Paste your ad copy here…" maxlength="1000"></textarea>
-    <div class="char-counter" id="pCounter">0 / 125 recommended</div>
-  </div>
-
-  <p id="loading">⏳ Checking your ad…</p>
-  <button class="check-btn" id="checkBtn" disabled>Check Ad</button>
+<div class="progress-bar-wrap" id="progressWrap">
+  <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+  <div class="progress-label" id="progressLabel">Analyzing…</div>
 </div>
 
 <div id="results"></div>
 
 <script>
-const dropArea    = document.getElementById('dropArea');
-const fileInput   = document.getElementById('fileInput');
-const preview     = document.getElementById('preview');
-const checkBtn    = document.getElementById('checkBtn');
-const loading     = document.getElementById('loading');
-const results     = document.getElementById('results');
-const headlineEl  = document.getElementById('headline');
-const primaryEl   = document.getElementById('primaryText');
-const hCounter    = document.getElementById('hCounter');
-const pCounter    = document.getElementById('pCounter');
-let selectedFile  = null;
+const dropArea   = document.getElementById('dropArea');
+const fileInput  = document.getElementById('fileInput');
+const thumbGrid  = document.getElementById('thumbGrid');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const resultsEl  = document.getElementById('results');
+let selectedFiles = [];
 
-dropArea.addEventListener('click', () => fileInput.click());
+dropArea.addEventListener('click', e => { if(e.target.classList.contains('remove-btn')) return; fileInput.click(); });
 dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.classList.add('drag-over'); });
 dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
-dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.classList.remove('drag-over'); if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', () => { if(fileInput.files[0]) handleFile(fileInput.files[0]); });
+dropArea.addEventListener('drop', e => { e.preventDefault(); dropArea.classList.remove('drag-over'); addFiles(Array.from(e.dataTransfer.files)); });
+fileInput.addEventListener('change', () => { addFiles(Array.from(fileInput.files)); fileInput.value=''; });
 
-headlineEl.addEventListener('input', () => {
-  const n = headlineEl.value.length;
-  hCounter.textContent = `${n} / 40 recommended`;
-  hCounter.className = 'char-counter' + (n > 40 ? ' over' : '');
-});
-primaryEl.addEventListener('input', () => {
-  const n = primaryEl.value.length;
-  pCounter.textContent = `${n} / 125 recommended`;
-  pCounter.className = 'char-counter' + (n > 125 ? ' over' : '');
-});
-
-function handleFile(file) {
-  selectedFile = file;
-  checkBtn.disabled = false;
-  results.innerHTML = '';
-  const reader = new FileReader();
-  reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
-  reader.readAsDataURL(file);
+function addFiles(files) {
+  const allowed = ['image/png','image/jpeg','image/gif','image/webp'];
+  files.filter(f => allowed.includes(f.type)).forEach(f => {
+    if (!selectedFiles.find(x => x.name===f.name && x.size===f.size)) selectedFiles.push(f);
+  });
+  renderThumbs();
+  analyzeBtn.disabled = selectedFiles.length === 0;
 }
 
-checkBtn.addEventListener('click', async () => {
-  if (!selectedFile) return;
-  loading.style.display = 'block';
-  checkBtn.disabled = true;
-  results.innerHTML = '';
+function removeFile(idx) {
+  selectedFiles.splice(idx, 1);
+  renderThumbs();
+  analyzeBtn.disabled = selectedFiles.length === 0;
+}
+
+function renderThumbs() {
+  thumbGrid.innerHTML = selectedFiles.map((f,i) => {
+    const url = URL.createObjectURL(f);
+    return `<div class="thumb-item">
+      <button class="remove-btn" onclick="removeFile(${i})">×</button>
+      <img src="${url}" alt="${f.name}"/>
+      <div class="fname">${f.name}</div>
+    </div>`;
+  }).join('');
+}
+
+analyzeBtn.addEventListener('click', async () => {
+  if (!selectedFiles.length) return;
+  analyzeBtn.disabled = true;
+  resultsEl.innerHTML = '';
+  progressWrap.style.display = 'block';
+  progressFill.style.width = '0%';
+  progressLabel.textContent = `Analyzing ${selectedFiles.length} ad${selectedFiles.length>1?'s':''}… (this may take 10–30 seconds)`;
+
+  // Show skeleton cards
+  resultsEl.innerHTML = selectedFiles.map(f => `
+    <div class="result-card">
+      <div class="result-card-header">
+        <span class="fname">${f.name}</span>
+        <div class="meta-tags"><div class="skeleton" style="width:60px;height:20px"></div></div>
+      </div>
+      <div style="padding:24px"><div class="skeleton"></div><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:50%"></div></div>
+    </div>`).join('');
+
   const fd = new FormData();
-  fd.append('file', selectedFile);
-  fd.append('headline', headlineEl.value);
-  fd.append('primary_text', primaryEl.value);
+  selectedFiles.forEach(f => fd.append('files', f));
+
   try {
-    const res  = await fetch('/check', { method: 'POST', body: fd });
+    // Animate progress
+    let prog = 10;
+    const ticker = setInterval(() => {
+      prog = Math.min(prog + Math.random() * 8, 85);
+      progressFill.style.width = prog + '%';
+    }, 800);
+
+    const res = await fetch('/check-bulk', { method: 'POST', body: fd });
     const data = await res.json();
-    renderResults(data);
-  } catch(e) {
-    results.innerHTML = '<p style="color:red;margin-top:10px">Error — please try again.</p>';
+
+    clearInterval(ticker);
+    progressFill.style.width = '100%';
+    progressLabel.textContent = 'Done!';
+    setTimeout(() => { progressWrap.style.display = 'none'; }, 1200);
+
+    if (data.error) {
+      resultsEl.innerHTML = `<div class="error-card">Error: ${data.error}</div>`;
+      return;
+    }
+    renderResults(data.results);
+  } catch(err) {
+    progressWrap.style.display = 'none';
+    resultsEl.innerHTML = `<div class="error-card">Something went wrong. Please try again.</div>`;
   } finally {
-    loading.style.display = 'none';
-    checkBtn.disabled = false;
+    analyzeBtn.disabled = false;
   }
 });
 
-function al(cls, text) { return `<div class="alert ${cls}">${text}</div>`; }
-
-function scoreColor(s) {
-  if (s >= 80) return '#22c55e';
-  if (s >= 55) return '#f59e0b';
-  return '#ef4444';
+function renderResults(results) {
+  resultsEl.innerHTML = results.map((r, idx) => renderCard(r, idx)).join('');
 }
 
-function scoreLabel(s) {
-  if (s >= 80) return 'Strong Creative';
-  if (s >= 55) return 'Needs Improvement';
-  return 'At Risk';
-}
+function renderCard(r, idx) {
+  if (r.error) return `<div class="error-card"><strong>${r.filename}</strong><br>${r.error}</div>`;
 
-function renderResults(data) {
-  if (data.error) { results.innerHTML = `<div class="card">${al('a-err', data.error)}</div>`; return; }
+  const size = r.size || {};
+  const ai   = r.ai   || {};
+  const sz   = r.safe_zone;
 
-  let html = '';
+  const ratio = size.detected_ratio || '?';
+  const dims  = (size.width && size.height) ? `${size.width}×${size.height}` : '';
 
-  /* ── Andromeda Score ── */
-  const sc = data.andromeda_score ?? 0;
-  const col = scoreColor(sc);
-  html += `
-    <div class="score-card">
-      <div style="font-size:13px;font-weight:700;color:#65676b;text-transform:uppercase;letter-spacing:.06em">Andromeda Quality Score</div>
-      <div class="score-ring" style="color:${col};border-color:${col}">${sc}</div>
-      <div class="score-label" style="color:${col};font-weight:700">${scoreLabel(sc)}</div>
-      <div class="score-label" style="margin-top:6px;font-size:12px">Based on Meta's Andromeda ranking factors from your PDF guide</div>
-    </div>`;
+  // Performance ring
+  const perf = ai.performance_score ?? 0;
+  const ringColor = perf >= 70 ? '#22c55e' : perf >= 45 ? '#f59e0b' : '#ef4444';
+  const circumference = 2 * Math.PI * 30;
+  const offset = circumference - (perf / 100) * circumference;
 
-  /* ── Card 1: Size & Ratio ── */
-  const sp = data.passed;
-  const placementInfo = (data.info||[]).find(i => i.startsWith('Suitable'));
-  const placements = placementInfo
-    ? placementInfo.replace('Suitable for: ','').split(', ').map(n=>`<span class="tag">${n}</span>`).join('')
+  // Winning verdict
+  const verdictMap = {
+    'Winning Ad':  ['win-winning', '🏆 Winning Ad'],
+    'Promising':   ['win-promising', '✨ Promising'],
+    'Needs Work':  ['win-needs', '⚠ Needs Work'],
+    'Not Ready':   ['win-not', '✗ Not Ready'],
+  };
+  const [badgeCls, badgeText] = verdictMap[ai.winning_verdict] || ['win-needs', ai.winning_verdict || '—'];
+
+  // Safe zone section
+  const szVerdict = ai.safe_zone?.verdict || (sz ? (sz.warnings?.length ? 'REVIEW' : 'PASS') : '—');
+  const szExplain = ai.safe_zone?.explanation || '';
+  const szElements = ai.safe_zone?.elements_in_danger_zone || [];
+  const szPass = szVerdict === 'PASS';
+
+  // Overlay image
+  const overlayImg = sz?.overlay_image
+    ? `<img id="overlay-${idx}" src="data:image/png;base64,${sz.overlay_image}" alt="Safe zone overlay" style="display:none;width:100%;border-radius:8px;border:1px solid #e4e6eb"/>
+       <span class="overlay-toggle" onclick="toggleOverlay(${idx})">Show safe zone overlay</span>`
     : '';
-  const sizeAlerts = (data.info||[]).filter(i=>!i.startsWith('Suitable')&&!i.startsWith('Ratio')).map(i=>al('a-info',i)).join('');
-  const sizeIssues = (data.issues||[]).map(i=>al('a-err','⚠️ '+i)).join('');
 
-  html += `<div class="card">
-    <h2>Size &amp; Ratio</h2>
-    <span class="badge ${sp?'pass':'fail'}">${sp?'✓ PASSED':'✗ FAILED'}</span>
-    <div class="result-row"><span class="lbl">Dimensions</span><span class="val">${data.width} × ${data.height} px</span></div>
-    <div class="result-row"><span class="lbl">Detected Ratio</span><span class="val">${data.detected_ratio||'Unknown'}</span></div>
-    <div class="result-row"><span class="lbl">Format</span><span class="val">${data.format||'N/A'}</span></div>
-    ${placements?`<div class="result-row"><span class="lbl">Placements</span><span class="val"><div class="tag-list">${placements}</div></span></div>`:''}
-    <div style="margin-top:10px">${sizeAlerts}${sizeIssues}</div>
-  </div>`;
+  // Original image preview
+  const origImg = `<img id="orig-${idx}" src="" alt="Ad preview" style="width:100%;border-radius:8px;border:1px solid #e4e6eb"/>`;
 
-  /* ── Card 2: Image Quality ── */
-  const q = data.quality_check;
-  if (q) {
-    const qp = q.passed;
-    const sharpPct  = Math.min(100, (q.sharpness_score/200)*100);
-    const contPct   = Math.min(100, (q.contrast_score/100)*100);
-    const textOk    = q.text_area_pct <= 20;
-    const qAlerts   = (q.info||[]).map(i=>al('a-info','✓ '+i)).join('');
-    const qIssues   = (q.issues||[]).map(i=>al('a-err','⚠️ '+i)).join('');
-    html += `<div class="card">
-      <h2>Image Quality</h2>
-      <span class="badge ${qp?'pass':'fail'}">${qp?'✓ PASSED':'✗ FAILED'}</span>
-      <div class="result-row"><span class="lbl">Sharpness</span><span class="val">${q.sharpness_score} / 200+</span></div>
-      <div class="bar-wrap"><div class="bar-fill" style="width:${sharpPct}%;background:${sharpPct>40?'#22c55e':'#ef4444'}"></div></div>
-      <div class="result-row" style="margin-top:8px"><span class="lbl">Contrast</span><span class="val">${q.contrast_score} / 100+</span></div>
-      <div class="bar-wrap"><div class="bar-fill" style="width:${contPct}%;background:${contPct>45?'#22c55e':'#ef4444'}"></div></div>
-      <div class="result-row" style="margin-top:8px"><span class="lbl">Est. Text Overlay</span><span class="val ${textOk?'':'fail'}">${q.text_area_pct}% ${textOk?'(under 20% ✓)':'(over 20% limit ✗)'}</span></div>
-      <div style="margin-top:10px">${qAlerts}${qIssues}</div>
-    </div>`;
-  }
+  // Quality grid
+  const q = ai.quality || {};
+  const qualityGrid = q.score != null ? `
+    <div>
+      <div class="section-title">Creative Quality Signals</div>
+      <div class="quality-grid">
+        ${qItem('Quality Score', q.score + '/100')}
+        ${qItem('Thumb-Stop', q.thumb_stop_power || '—')}
+        ${qItem('Text Clarity', q.text_clarity || '—')}
+        ${qItem('Contrast', q.contrast || '—')}
+        ${qItem('Clutter', q.clutter_level || '—')}
+        ${qItem('Value Prop Visible', q.value_prop_visible ? 'Yes ✓' : 'No ✗')}
+      </div>
+    </div>` : '';
 
-  /* ── Card 3: Safe Zone ── */
-  const sz = data.safe_zone_check;
-  if (sz) {
-    const hasWarn = (sz.warnings||[]).length > 0;
-    const szAlerts = (sz.warnings||[]).map(w=>al('a-warn','⚠️ '+w)).join('');
-    const szNotes  = (sz.notes||[]).map(n=>al('a-info','ℹ️ '+n)).join('');
-    const safe     = sz.safe_zone;
-    const margins  = sz.danger_zone_margins;
-    const overlay  = sz.overlay_image
-      ? `<img class="overlay-img" src="data:image/png;base64,${sz.overlay_image}" alt="Safe zone overlay"/>
-         <div class="legend">
-           <span><span class="ldot" style="background:rgba(220,38,38,.45)"></span>Danger zone</span>
-           <span><span class="ldot" style="background:#22c55e"></span>Safe zone border</span>
-         </div>` : '';
-    html += `<div class="card">
-      <h2>Safe Zone</h2>
-      <span class="badge ${hasWarn?'warn':'pass'}">${hasWarn?'⚠ REVIEW':'✓ OK'}</span>
-      <div class="result-row"><span class="lbl">Safe area</span><span class="val">${safe.width_px} × ${safe.height_px} px</span></div>
-      <div class="result-row"><span class="lbl">Top danger</span><span class="val">${margins.top}</span></div>
-      <div class="result-row"><span class="lbl">Bottom danger</span><span class="val">${margins.bottom}</span></div>
-      <div class="result-row"><span class="lbl">Left / Right</span><span class="val">${margins.left} each</span></div>
-      <div style="margin-top:10px">${szAlerts}${szNotes}</div>
-      ${overlay}
-    </div>`;
-  }
+  return `
+  <div class="result-card" data-idx="${idx}">
+    <div class="result-card-header">
+      <span class="fname">${r.filename}</span>
+      <div class="meta-tags">
+        ${ratio !== '?' ? `<span class="tag tag-ratio">${ratio}</span>` : ''}
+        ${dims ? `<span class="tag tag-size">${dims}px</span>` : ''}
+        ${!size.passed ? `<span class="tag" style="background:#f8d7da;color:#721c24">Size Issue</span>` : ''}
+      </div>
+    </div>
 
-  /* ── Card 4: Copy Check ── */
-  const cp = data.copy_check;
-  if (cp) {
-    const cpp = cp.passed;
-    const hBar = Math.min(100, (cp.headline_len / cp.headline_max) * 100);
-    const pBar = Math.min(100, (cp.primary_len  / cp.primary_max)  * 100);
-    const cpAlerts = (cp.info||[]).map(i=>al('a-info','✓ '+i)).join('');
-    const cpIssues = (cp.issues||[]).map(i=>al('a-err','⚠️ '+i)).join('');
-    html += `<div class="card">
-      <h2>Copy &amp; Policy Check</h2>
-      <span class="badge ${cpp?'pass':'fail'}">${cpp?'✓ PASSED':'✗ ISSUES FOUND'}</span>
-      ${cp.headline_len>0?`
-      <div class="result-row"><span class="lbl">Headline</span><span class="val">${cp.headline_len} / ${cp.headline_max} chars</span></div>
-      <div class="bar-wrap"><div class="bar-fill" style="width:${hBar}%;background:${hBar<=100?'#22c55e':'#ef4444'}"></div></div>` : ''}
-      ${cp.primary_len>0?`
-      <div class="result-row" style="margin-top:8px"><span class="lbl">Primary text</span><span class="val">${cp.primary_len} / ${cp.primary_max} chars</span></div>
-      <div class="bar-wrap"><div class="bar-fill" style="width:${pBar}%;background:${pBar<=100?'#22c55e':'#ef4444'}"></div></div>` : ''}
-      <div style="margin-top:10px">${cpAlerts}${cpIssues}</div>
-    </div>`;
-  }
+    <div class="result-card-body">
 
-  /* ── Card 5: Andromeda Checklist ── */
-  html += `<div class="card">
-    <h2>Andromeda Winning Checklist</h2>
-    <p style="font-size:12px;color:#65676b;margin-bottom:10px">From your Meta policy guide — review these before publishing</p>
-    <div class="checklist">
-      <div class="cl-section">Policy Compliance</div>
-      ${cl('No prohibited content in image or copy')}
-      ${cl('No personal attribute targeting language (race, health, religion)')}
-      ${cl('All claims are factually accurate and supportable')}
-      ${cl('No before/after body transformation imagery')}
-      ${cl('Text overlay under 20% of total image area')}
-      ${cl('No engagement bait language')}
-      <div class="cl-section">Creative Quality (Andromeda signals)</div>
-      ${cl('Image is sharp and high resolution (min 1080×1080px)')}
-      ${cl('High contrast between subject and background')}
-      ${cl('Clear focal point — key element is immediately visible')}
-      ${cl('No watermarks or third-party logos without rights')}
-      ${cl('Mobile-first: still works on a 4-inch screen')}
-      <div class="cl-section">Andromeda Optimisation</div>
-      ${cl('Upload 3–5 distinct creative variants to your ad set')}
-      ${cl('Include at least 2 aspect ratios (e.g. 1:1 + 9:16)')}
-      ${cl('Refresh creatives every 2–4 weeks (or when frequency > 3)')}
-      ${cl('Enable Advantage+ Creative at ad set level')}
-      <div class="cl-section">Conversion Best Practices</div>
-      ${cl('Single clear CTA — one action per ad')}
-      ${cl('Value prop visible within first 0.5 seconds of view')}
-      ${cl('Headline under 40 chars, primary text under 125 chars')}
-      ${cl('CTA button matches the ad goal (Shop Now, Learn More…)')}
+      <!-- Left: image -->
+      <div class="img-col">
+        ${origImg}
+        ${overlayImg}
+      </div>
+
+      <!-- Right: analysis -->
+      <div class="analysis-col">
+
+        <!-- Performance ring + verdict -->
+        <div class="perf-row">
+          <div class="ring-wrap">
+            <svg class="ring" width="80" height="80" viewBox="0 0 80 80">
+              <circle class="ring-bg" cx="40" cy="40" r="30"/>
+              <circle class="ring-fill" cx="40" cy="40" r="30"
+                stroke="${ringColor}"
+                stroke-dasharray="${circumference}"
+                stroke-dashoffset="${offset}"/>
+              <text class="ring-text" x="40" y="37" fill="${ringColor}" font-size="15" font-weight="800">${perf}%</text>
+              <text class="ring-label" x="40" y="52" fill="#65676b" font-size="9">Performance</text>
+            </svg>
+          </div>
+          <div class="perf-info">
+            <h3 style="color:${ringColor}">${perfLabel(perf)}</h3>
+            <div class="sub">Predicted Meta ad performance</div>
+            <span class="winning-badge ${badgeCls}">${badgeText}</span>
+          </div>
+        </div>
+
+        <!-- AI Analysis -->
+        ${ai.analysis ? `<div class="analysis-text">${ai.analysis}</div>` : ''}
+
+        <!-- Safe Zone -->
+        <div>
+          <div class="section-title">Safe Zone Check</div>
+          <div class="safe-zone-row">
+            <span class="sz-badge ${szPass ? 'sz-pass' : 'sz-fail'}">${szPass ? '✓ PASS' : '✗ FAIL'}</span>
+            <span class="sz-text">${szExplain || (szPass ? 'All key content is within the safe zone.' : 'Content detected in danger zones.')}</span>
+          </div>
+          ${szElements.length ? `<div class="list-items" style="margin-top:8px">${szElements.map(e=>`<div class="list-item"><span class="dot dot-red"></span><span>${e}</span></div>`).join('')}</div>` : ''}
+        </div>
+
+        <!-- Quality signals -->
+        ${qualityGrid}
+
+        <!-- Strengths -->
+        ${(ai.strengths||[]).length ? `
+        <div>
+          <div class="section-title">What's Working</div>
+          <div class="list-items">${(ai.strengths||[]).map(s=>`<div class="list-item"><span class="dot dot-green"></span><span>${s}</span></div>`).join('')}</div>
+        </div>` : ''}
+
+        <!-- Issues -->
+        ${(ai.issues||[]).length ? `
+        <div>
+          <div class="section-title">Issues Found</div>
+          <div class="list-items">${(ai.issues||[]).map(s=>`<div class="list-item"><span class="dot dot-red"></span><span>${s}</span></div>`).join('')}</div>
+        </div>` : ''}
+
+        <!-- Improvements -->
+        ${(ai.improvements||[]).length ? `
+        <div>
+          <div class="section-title">How to Improve</div>
+          ${(ai.improvements||[]).map((imp,i)=>`<div class="improve-item"><strong>${i+1}.</strong> ${imp}</div>`).join('')}
+        </div>` : ''}
+
+      </div>
     </div>
   </div>`;
-
-  results.innerHTML = html;
 }
 
-function cl(text) {
-  return `<div class="cl-item"><span class="cl-icon">☐</span><span>${text}</span></div>`;
+function qItem(label, val) {
+  return `<div class="q-item"><div class="q-label">${label}</div><div class="q-val">${val}</div></div>`;
+}
+
+function perfLabel(p) {
+  if (p >= 75) return 'High Performer';
+  if (p >= 50) return 'Average';
+  if (p >= 30) return 'Below Average';
+  return 'Low Performer';
+}
+
+function toggleOverlay(idx) {
+  const orig    = document.getElementById(`orig-${idx}`);
+  const overlay = document.getElementById(`overlay-${idx}`);
+  const btn     = overlay?.nextElementSibling;
+  if (!overlay) return;
+  const showing = overlay.style.display !== 'none';
+  overlay.style.display = showing ? 'none' : 'block';
+  orig.style.display    = showing ? 'block' : 'none';
+  if (btn) btn.textContent = showing ? 'Show safe zone overlay' : 'Show original';
+}
+
+// After results render, set original image srcs from files
+function renderResults(results) {
+  resultsEl.innerHTML = results.map((r, idx) => renderCard(r, idx)).join('');
+  results.forEach((r, idx) => {
+    const file = selectedFiles.find(f => f.name === r.filename);
+    if (file) {
+      const origEl = document.getElementById(`orig-${idx}`);
+      if (origEl) origEl.src = URL.createObjectURL(file);
+    }
+  });
 }
 </script>
 </body>
