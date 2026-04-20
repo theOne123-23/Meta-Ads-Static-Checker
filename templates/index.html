@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Meta Ads Static Checker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f0f2f5;
+      color: #1c1e21;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: #1877f2;
+    }
+
+    p.subtitle {
+      font-size: 14px;
+      color: #65676b;
+      margin-bottom: 32px;
+    }
+
+    .upload-box {
+      width: 100%;
+      max-width: 520px;
+      background: white;
+      border-radius: 12px;
+      padding: 40px 32px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .drop-area {
+      border: 2px dashed #1877f2;
+      border-radius: 8px;
+      padding: 40px 20px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .drop-area:hover, .drop-area.drag-over {
+      background: #e7f0fd;
+    }
+
+    .drop-area p {
+      font-size: 14px;
+      color: #65676b;
+      margin-top: 8px;
+    }
+
+    .drop-area .icon {
+      font-size: 40px;
+    }
+
+    input[type="file"] { display: none; }
+
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #1877f2;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover { background: #166fe5; }
+    button:disabled { background: #bcc0c4; cursor: not-allowed; }
+
+    #preview {
+      margin-top: 16px;
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #results {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 24px;
+    }
+
+    .result-card {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .status-pass { background: #d4edda; color: #155724; }
+    .status-fail { background: #f8d7da; color: #721c24; }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 14px;
+    }
+
+    .result-row:last-child { border-bottom: none; }
+    .result-row .label { color: #65676b; }
+    .result-row .value { font-weight: 600; }
+
+    .issues { margin-top: 16px; }
+    .issue-item {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .info-item {
+      background: #d1ecf1;
+      border-left: 4px solid #17a2b8;
+      padding: 10px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    #loading { display: none; color: #65676b; font-size: 14px; margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+  <h1>Meta Ads Static Checker</h1>
+  <p class="subtitle">Step 1 — Size &amp; Ratio Validation</p>
+
+  <div class="upload-box">
+    <div class="drop-area" id="dropArea">
+      <div class="icon">🖼️</div>
+      <p><strong>Click to upload</strong> or drag &amp; drop your ad image</p>
+      <p>PNG, JPG, GIF, WEBP — max 30MB</p>
+    </div>
+    <input type="file" id="fileInput" accept=".png,.jpg,.jpeg,.gif,.webp" />
+    <img id="preview" alt="Preview" />
+    <p id="loading">Checking your ad...</p>
+    <button id="checkBtn" disabled>Check Ad</button>
+  </div>
+
+  <div id="results"></div>
+
+  <script>
+    const dropArea = document.getElementById('dropArea');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const checkBtn = document.getElementById('checkBtn');
+    const loading = document.getElementById('loading');
+    const results = document.getElementById('results');
+    let selectedFile = null;
+
+    dropArea.addEventListener('click', () => fileInput.click());
+
+    dropArea.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropArea.classList.add('drag-over');
+    });
+
+    dropArea.addEventListener('dragleave', () => dropArea.classList.remove('drag-over'));
+
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    });
+
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+      selectedFile = file;
+      checkBtn.disabled = false;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    checkBtn.addEventListener('click', async () => {
+      if (!selectedFile) return;
+
+      loading.style.display = 'block';
+      checkBtn.disabled = true;
+      results.innerHTML = '';
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      try {
+        const res = await fetch('/check', { method: 'POST', body: formData });
+        const data = await res.json();
+        renderResults(data);
+      } catch (err) {
+        results.innerHTML = '<p style="color:red">Error checking the file. Please try again.</p>';
+      } finally {
+        loading.style.display = 'none';
+        checkBtn.disabled = false;
+      }
+    });
+
+    function renderResults(data) {
+      if (data.error) {
+        results.innerHTML = `<div class="result-card"><p style="color:red">${data.error}</p></div>`;
+        return;
+      }
+
+      const passed = data.passed;
+      const badge = `<span class="status-badge ${passed ? 'status-pass' : 'status-fail'}">${passed ? '✓ PASSED' : '✗ FAILED'}</span>`;
+
+      let rows = `
+        <div class="result-row"><span class="label">Dimensions</span><span class="value">${data.width} × ${data.height} px</span></div>
+        <div class="result-row"><span class="label">Detected Ratio</span><span class="value">${data.detected_ratio || 'Unknown'}</span></div>
+        <div class="result-row"><span class="label">Format</span><span class="value">${data.format || 'N/A'}</span></div>
+      `;
+
+      let infoItems = (data.info || []).map(i => `<div class="info-item">${i}</div>`).join('');
+      let issueItems = (data.issues || []).map(i => `<div class="issue-item">⚠️ ${i}</div>`).join('');
+
+      results.innerHTML = `
+        <div class="result-card">
+          ${badge}
+          ${rows}
+          <div class="issues">
+            ${infoItems}
+            ${issueItems}
+          </div>
+        </div>
+      `;
+    }
+  </script>
+
+</body>
+</html>
