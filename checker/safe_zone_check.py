@@ -57,9 +57,8 @@ def check_safe_zone(image_path, ratio_name):
     if zone is None:
         return None
 
-    with Image.open(image_path) as img:
-        img = img.convert("RGBA")
-        w, h = img.size
+    img = Image.open(image_path).convert("RGBA")
+    w, h = img.size
 
     sx1 = int(w * zone["left"])
     sy1 = int(h * zone["top"])

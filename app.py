@@ -48,7 +48,11 @@ def check_bulk():
             size_result = check_size(save_path)
             ratio = size_result.get("detected_ratio")
 
-            safe_zone_result = check_safe_zone(save_path, ratio) if ratio else None
+            try:
+                safe_zone_result = check_safe_zone(save_path, ratio) if ratio else None
+            except Exception as e:
+                safe_zone_result = None
+                size_result.setdefault("issues", []).append(f"Safe zone check failed: {str(e)}")
 
             try:
                 ai_result = analyze_ad(save_path, ratio)
