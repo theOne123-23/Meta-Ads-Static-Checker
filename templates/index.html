@@ -239,7 +239,7 @@ function renderCard(r, idx) {
   const size = r.size || {};
   const ai   = r.ai   || {};
   const sz   = r.safe_zone;
-  const aiOk = !ai.error && ai.performance_score != null;
+  const aiOk = ai.performance_score != null;
 
   const ratio = size.detected_ratio || '?';
   const dims  = (size.width && size.height) ? `${size.width}×${size.height}` : '';
@@ -324,8 +324,6 @@ function renderCard(r, idx) {
 
       <!-- Right: analysis -->
       <div class="analysis-col">
-
-        ${aiErrorBlock}
 
         <!-- Performance ring + verdict -->
         <div class="perf-row">
