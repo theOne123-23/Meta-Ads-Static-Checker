@@ -393,13 +393,14 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
             "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
         }).encode("utf-8")
 
-        # Try models in order — newer free-tier models first
+        # Try models in order — newest available free-tier models first
+        # 1.5 models were deprecated/removed from v1beta as of 2026
         models_to_try = [
+            "gemini-2.5-flash-preview-04-17",
             "gemini-2.0-flash-lite",
-            "gemini-1.5-flash-8b",
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-latest",
-            "gemini-1.5-flash-001",
+            "gemini-2.0-flash",
+            "gemini-2.5-pro-exp-03-25",
+            "gemini-2.0-flash-exp",
         ]
         last_error = None
         for model in models_to_try:
