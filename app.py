@@ -29,6 +29,8 @@ def check_bulk():
     if not files or all(f.filename == "" for f in files):
         return jsonify({"error": "No files uploaded."}), 400
 
+    ad_copy = request.form.get("ad_copy", "").strip()
+
     results = []
     for file in files:
         if not file or file.filename == "":
@@ -55,7 +57,7 @@ def check_bulk():
                 size_result.setdefault("issues", []).append(f"Safe zone check failed: {str(e)}")
 
             try:
-                ai_result = analyze_ad(save_path, ratio)
+                ai_result = analyze_ad(save_path, ratio, ad_copy)
             except Exception as e:
                 ai_result = {"error": f"AI analysis failed: {str(e)}"}
 

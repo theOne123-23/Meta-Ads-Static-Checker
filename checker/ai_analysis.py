@@ -132,39 +132,154 @@ def _safe_zone_check(img_rgb, ratio_name):
     }
 
 
-# ── Rule-based policy check ───────────────────────────────────────────────────
+# ── Rule-based text policy check ─────────────────────────────────────────────
 
-def _policy_check_fallback():
-    """
-    Rule-based policy check (used when Gemini is unavailable).
-    Visual before/after detection isn't possible without AI vision;
-    return a review-required notice for all health/treatment categories.
-    """
+_BEFORE_AFTER_PATTERNS = [
+    "before and after", "before & after", "before/after",
+    "post and pre", "pre and post", "pre treatment", "post treatment",
+    "before treatment", "after treatment", "before the treatment", "after the treatment",
+    "before photo", "after photo", "before pic", "after pic",
+    "transformation photo", "transformation result",
+    "results after", "weeks result", "days result",
+    "week transformation", "day transformation",
+    "see the difference", "see real results", "real results",
+    "client results", "patient results", "before vs after", "before vs. after",
+]
+
+_PERSONAL_ATTRIBUTE_PATTERNS = [
+    "are you overweight", "are you fat", "are you obese",
+    "struggling with your weight", "struggling with acne", "struggling with",
+    "do you suffer", "suffering from", "if you have",
+    "people like you", "your body problem", "your skin condition",
+    "your health condition", "do you have diabetes", "are you diabetic",
+    "your weight problem",
+]
+
+_HEALTH_CLAIM_PATTERNS = [
+    "cures ", "cure your", "cured my", "heals ", "heal your",
+    "treats ", "treat your", "treats acne", "treats wrinkles",
+    "diagnose", "prevents ", "prevent your",
+    "guaranteed results", "100% effective", "100% results",
+    "instant relief", "instant results",
+    "clinically proven", "medically proven", "doctor approved",
+    "fda approved", "dermatologist approved", "board certified",
+    "eliminates acne", "eliminates wrinkles", "fixes acne", "fixes wrinkles",
+    "remove cellulite", "removes cellulite",
+]
+
+_ENGAGEMENT_BAIT_PATTERNS = [
+    "like if", "share if", "comment yes", "tag a friend",
+    "tag someone", "click like", "type yes", "type amen",
+    "share this if", "tag your friends", "comment below if",
+]
+
+_NEGATIVE_BODY_PATTERNS = [
+    "hate your body", "ashamed of your", "embarrassed by your",
+    "feel ugly", "look ugly", "body shaming",
+]
+
+_AGE_GATE_PATTERNS = [
+    "weight loss", "fat burner", "botox", "filler", "lip filler",
+    "cosmetic procedure", "cosmetic surgery", "dietary supplement",
+    "weight loss pill", "diet pill", "slimming", "anti-aging", "anti-ageing",
+]
+
+
+def _text_policy_check(ad_copy: str) -> dict:
+    """Comprehensive rule-based policy check on ad copy text."""
+    text = ad_copy.lower()
+    violations, warnings = [], []
+
+    # Before/after
+    ba_found = next((p for p in _BEFORE_AFTER_PATTERNS if p in text), None)
+    before_after_detected = ba_found is not None
+    if before_after_detected:
+        violations.append(
+            f"Before/after language detected: \"{ba_found}\" — prohibited for health, "
+            "cosmetic, anti-aging, and weight-loss ads under Meta Advertising Policies."
+        )
+
+    # Personal attributes
+    pa_found = next((p for p in _PERSONAL_ATTRIBUTE_PATTERNS if p in text), None)
+    personal_issue = pa_found is not None
+    if personal_issue:
+        violations.append(
+            f"Personal attribute language: \"{pa_found}\" — ads must not imply knowledge "
+            "of personal health, weight, or physical characteristics."
+        )
+
+    # Health claims
+    hc_found = next((p for p in _HEALTH_CLAIM_PATTERNS if p in text), None)
+    health_issue = hc_found is not None
+    if health_issue:
+        violations.append(
+            f"Prohibited health claim: \"{hc_found}\" — replace with "
+            "\"may help support\" or \"designed to promote\"."
+        )
+
+    # Engagement bait
+    bait_found = next((p for p in _ENGAGEMENT_BAIT_PATTERNS if p in text), None)
+    bait_issue = bait_found is not None
+    if bait_issue:
+        violations.append(
+            f"Engagement bait: \"{bait_found}\" — Meta prohibits asking users to like, share, or tag."
+        )
+
+    # Negative body image
+    nbi_found = next((p for p in _NEGATIVE_BODY_PATTERNS if p in text), None)
+    nbi_issue = nbi_found is not None
+    if nbi_issue:
+        warnings.append(
+            f"Possible negative body image language: \"{nbi_found}\" — review to ensure "
+            "it doesn't exploit insecurities."
+        )
+
+    # Age gate
+    age_found = next((p for p in _AGE_GATE_PATTERNS if p in text), None)
+    age_gate = age_found is not None
+    if age_gate:
+        warnings.append(
+            f"Category \"{age_found}\" typically requires 18+ audience targeting on Meta."
+        )
+
+    if violations:
+        overall, is_compliant = "VIOLATION", False
+    elif warnings:
+        overall, is_compliant = "REVIEW REQUIRED", None
+    else:
+        overall, is_compliant = "COMPLIANT", True
+        if ad_copy.strip():
+            warnings.append(
+                "No policy violations found in ad copy. "
+                "Also review image visuals for before/after content not mentioned in text."
+            )
+
+    if before_after_detected:
+        ba_note = (
+            f"Before/after language \"{ba_found}\" detected. "
+            "This is PROHIBITED for health, cosmetic, anti-aging, and weight-loss ads on Meta."
+        )
+    elif ad_copy.strip():
+        ba_note = "No before/after language detected in the ad copy you provided."
+    else:
+        ba_note = "No ad copy entered. Paste your headline/caption above to check automatically."
+
     return {
-        "overall": "REVIEW REQUIRED",
-        "is_compliant": None,
-        "before_after_detected": None,
-        "before_after_note": (
-            "AI vision is required to confirm before/after detection. "
-            "If this is a treatment/health/cosmetic ad, before-and-after images are PROHIBITED "
-            "by Meta's ad policies unless the product is a non-permanent cosmetic or fitness class."
-        ),
-        "personal_attributes_issue": None,
-        "personal_attributes_note": (
-            "Manually verify: ads must not imply knowledge of personal health conditions, "
-            "weight, age, or other personal attributes."
-        ),
-        "health_claim_issue": None,
-        "health_claim_note": (
-            "Avoid words like 'cure', 'treat', 'heal', 'guaranteed results', 'clinically proven' "
-            "unless medically verified. Use 'may help support' / 'designed to promote' instead."
-        ),
-        "violations": [],
-        "warnings": [
-            "Enable Gemini AI (free) for full automatic policy compliance checking.",
-            "Before/after images are prohibited for skin treatments, cosmetic procedures, and weight loss.",
-            "Ensure ad copy does not reference personal attributes (health conditions, body issues, age).",
-        ],
+        "overall": overall,
+        "is_compliant": is_compliant,
+        "before_after_detected": before_after_detected,
+        "before_after_note": ba_note,
+        "personal_attributes_issue": personal_issue,
+        "personal_attributes_note": (f'Found: "{pa_found}"' if pa_found else None),
+        "health_claim_issue": health_issue,
+        "health_claim_note": (f'Found: "{hc_found}"' if hc_found else None),
+        "negative_body_image_issue": nbi_issue,
+        "negative_body_image_note": (f'Found: "{nbi_found}"' if nbi_found else None),
+        "engagement_bait_issue": bait_issue,
+        "age_gate_recommended": age_gate,
+        "age_gate_reason": (f'Category "{age_found}" requires 18+ targeting' if age_found else None),
+        "violations": violations,
+        "warnings": warnings,
     }
 
 
@@ -282,7 +397,7 @@ def _build_analysis(perf, sharpness, contrast, saturation, text_pct, sz_pass, is
 
 # ── Gemini AI analysis ────────────────────────────────────────────────────────
 
-def _gemini_analyze(image_path: str, ratio_name: str | None) -> dict | None:
+def _gemini_analyze(image_path: str, ratio_name: str | None, ad_copy: str = "") -> dict | None:
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         return None
@@ -298,9 +413,11 @@ def _gemini_analyze(image_path: str, ratio_name: str | None) -> dict | None:
                 "Flag only text/logos/CTAs clearly inside danger zones. Backgrounds extending to edges = IGNORE."
             )
 
+        copy_section = f"\nAD COPY / TEXT PROVIDED BY USER:\n\"\"\"\n{ad_copy}\n\"\"\"\nAnalyze this text for policy violations in addition to the image.\n" if ad_copy.strip() else ""
+
         prompt = f"""You are an expert Meta (Facebook/Instagram) ad compliance analyst and creative strategist.
 Aspect ratio: {ratio_name or 'unknown'}
-{sz_desc}
+{sz_desc}{copy_section}
 
 META AD POLICY RULES TO ENFORCE:
 1. BEFORE/AFTER: Prohibited for weight loss, cosmetic procedures (Botox, fillers, anti-aging, skin treatments, acne). Allowed ONLY for: non-permanent cosmetics (makeup, hair extensions), fitness classes, digital editing apps.
@@ -447,8 +564,8 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
 
 # ── Public entry point ────────────────────────────────────────────────────────
 
-def analyze_ad(image_path: str, ratio_name: str | None) -> dict:
-    gemini = _gemini_analyze(image_path, ratio_name)
+def analyze_ad(image_path: str, ratio_name: str | None, ad_copy: str = "") -> dict:
+    gemini = _gemini_analyze(image_path, ratio_name, ad_copy)
     if gemini:
         return gemini
 
@@ -482,7 +599,7 @@ def analyze_ad(image_path: str, ratio_name: str | None) -> dict:
     clutter     = "Clean" if text_pct <= 15 else "Moderate" if text_pct <= 25 else "Cluttered"
 
     return {
-        "policy_compliance": _policy_check_fallback(),
+        "policy_compliance": _text_policy_check(ad_copy),
         "best_practices": {
             "has_brand_logo": None,
             "shows_product_in_use": None,
