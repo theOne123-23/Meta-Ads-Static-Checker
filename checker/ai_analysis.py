@@ -560,6 +560,30 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
 
 # ── OpenRouter vision analysis (free tier) ───────────────────────────────────
 
+def _openrouter_free_vision_models(api_key: str) -> list:
+    """Query OpenRouter's model list and return currently available free vision models."""
+    try:
+        req = urllib.request.Request(
+            "https://openrouter.ai/api/v1/models",
+            headers={"Authorization": f"Bearer {api_key}"},
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        models = []
+        for m in data.get("data", []):
+            pricing = m.get("pricing", {})
+            modality = m.get("architecture", {}).get("modality", "")
+            is_free = str(pricing.get("prompt", "1")) == "0" and str(pricing.get("completion", "1")) == "0"
+            has_vision = "image" in modality.lower()
+            if is_free and has_vision:
+                models.append(m["id"])
+        print(f"[OpenRouter] {len(models)} free vision models found: {models}", file=sys.stderr)
+        return models
+    except Exception as e:
+        print(f"[OpenRouter] model discovery failed: {e}", file=sys.stderr)
+        return []
+
 def _openrouter_analyze(image_path: str, ratio_name: str | None) -> dict | None:
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
@@ -610,12 +634,11 @@ Return ONLY valid JSON, no markdown:
 
         b64 = base64.b64encode(img_bytes).decode()
 
-        # Free vision models on OpenRouter
-        models_to_try = [
-            "meta-llama/llama-3.2-11b-vision-instruct:free",
-            "qwen/qwen2.5-vl-7b-instruct:free",
-            "meta-llama/llama-3.2-90b-vision-instruct:free",
-        ]
+        # Dynamically discover currently-available free vision models
+        models_to_try = _openrouter_free_vision_models(api_key)
+        if not models_to_try:
+            print("[OpenRouter] no free vision models available right now", file=sys.stderr)
+            return None
 
         for model in models_to_try:
             payload = json.dumps({
