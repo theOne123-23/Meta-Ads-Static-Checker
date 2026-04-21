@@ -510,14 +510,10 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
             "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
         }).encode("utf-8")
 
-        # Try models in order — newest available free-tier models first
-        # 1.5 models were deprecated/removed from v1beta as of 2026
+        # Only try models confirmed to exist on v1beta (others all return 404)
         models_to_try = [
-            "gemini-2.5-flash-preview-04-17",
             "gemini-2.0-flash-lite",
             "gemini-2.0-flash",
-            "gemini-2.5-pro-exp-03-25",
-            "gemini-2.0-flash-exp",
         ]
         last_error = None
         for model in models_to_try:
@@ -562,10 +558,10 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
         return None
 
 
-# ── Groq vision analysis (free tier, Llama 4 Scout) ──────────────────────────
+# ── OpenRouter vision analysis (free tier) ───────────────────────────────────
 
-def _groq_analyze(image_path: str, ratio_name: str | None) -> dict | None:
-    api_key = os.environ.get("GROQ_API_KEY", "").strip()
+def _openrouter_analyze(image_path: str, ratio_name: str | None) -> dict | None:
+    api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
         return None
 
@@ -577,77 +573,84 @@ def _groq_analyze(image_path: str, ratio_name: str | None) -> dict | None:
             sz_desc = (
                 f"Danger zones for {ratio_name}: top {int(margins['top']*100)}%, "
                 f"bottom {int(margins['bottom']*100)}%, left/right {int(margins['left']*100)}%. "
-                "Flag only text/logos/CTAs clearly inside danger zones. Backgrounds extending to edges = IGNORE."
+                "Flag only text/logos/CTAs clearly inside danger zones."
             )
 
         prompt = f"""You are an expert Meta (Facebook/Instagram) ad compliance analyst and creative strategist.
 Aspect ratio: {ratio_name or 'unknown'}
 {sz_desc}
 
-META AD POLICY RULES TO ENFORCE:
-1. BEFORE/AFTER: Prohibited for weight loss, cosmetic procedures (Botox, fillers, anti-aging, skin treatments, acne). Allowed ONLY for: non-permanent cosmetics (makeup, hair extensions), fitness classes, digital editing apps.
-2. PERSONAL ATTRIBUTES: Must not imply knowledge of race, health, weight, age, disability, financial status, sexual orientation. Flag language like "Are you overweight?", "Struggling with acne?", "People like you..."
-3. HEALTH CLAIMS: Prohibited words: cure, treat, heal, fix, diagnose, prevent, guaranteed results, 100% effective, instant relief, clinically proven (unless verified).
-4. NEGATIVE SELF-PERCEPTION: No body-shaming, zoomed-in images of body conditions, content implying a "perfect body", or messaging that exploits insecurities.
-5. ENGAGEMENT BAIT: No "Like if...", "Share if...", "Tag a friend", "Comment YES if..."
+META AD POLICY RULES:
+1. BEFORE/AFTER: Prohibited for weight loss, cosmetic procedures, anti-aging, skin/acne treatments.
+2. PERSONAL ATTRIBUTES: Must not imply knowledge of health, weight, age, disability.
+3. HEALTH CLAIMS: Prohibited: cure, treat, heal, guaranteed results, clinically proven (unless verified).
+4. NEGATIVE SELF-PERCEPTION: No body-shaming or content exploiting insecurities.
+5. ENGAGEMENT BAIT: No "Like if...", "Tag a friend", "Comment YES".
 6. TEXT OVERLAY: Should not exceed ~20% of image area.
+18+ age gate required for: weight loss, supplements, cosmetic procedures.
 
-META BEST PRACTICES:
-- High resolution, show brand/logo, show people using product in realistic settings
-- Modern clean font, high contrast, tight crop, appealing colors
-- 18+ age gate required for: weight loss, dietary supplements, cosmetic procedures
-
-Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
-{{"policy_compliance":{{"overall":"COMPLIANT or VIOLATION or REVIEW REQUIRED","is_compliant":true or false,"before_after_detected":true or false,"before_after_note":"null or explanation","personal_attributes_issue":true or false,"personal_attributes_note":"null or issue","health_claim_issue":true or false,"health_claim_note":"null or issue","negative_body_image_issue":true or false,"negative_body_image_note":"null or issue","engagement_bait_issue":true or false,"age_gate_recommended":true or false,"age_gate_reason":"null or reason","violations":[],"warnings":[]}},"best_practices":{{"has_brand_logo":true or false,"shows_product_in_use":true or false,"text_is_readable":true or false,"image_is_high_quality":true or false,"shows_real_people":true or false,"color_appeal":"Strong/Moderate/Weak","message_clarity":"Clear/Moderate/Unclear","recommendations":[]}},"safe_zone":{{"verdict":"PASS or FAIL","elements_in_danger_zone":[],"explanation":"one sentence"}},"quality":{{"score":0-100,"thumb_stop_power":"Strong/Moderate/Weak","text_clarity":"Clear/Borderline/Poor","value_prop_visible":true or false,"contrast":"High/Medium/Low","clutter_level":"Clean/Moderate/Cluttered"}},"performance_score":0-100,"winning_verdict":"Winning Ad/Promising/Needs Work/Not Ready","is_winning_ad":true or false,"strengths":[],"issues":[],"improvements":[],"analysis":"3 sentences specific to this ad"}}"""
+Return ONLY valid JSON, no markdown:
+{{"policy_compliance":{{"overall":"COMPLIANT or VIOLATION or REVIEW REQUIRED","is_compliant":true or false,"before_after_detected":true or false,"before_after_note":"explanation or null","personal_attributes_issue":true or false,"personal_attributes_note":"issue or null","health_claim_issue":true or false,"health_claim_note":"issue or null","negative_body_image_issue":true or false,"negative_body_image_note":"issue or null","engagement_bait_issue":true or false,"age_gate_recommended":true or false,"age_gate_reason":"reason or null","violations":[],"warnings":[]}},"best_practices":{{"has_brand_logo":true or false,"shows_product_in_use":true or false,"text_is_readable":true or false,"image_is_high_quality":true or false,"shows_real_people":true or false,"color_appeal":"Strong/Moderate/Weak","message_clarity":"Clear/Moderate/Unclear","recommendations":[]}},"safe_zone":{{"verdict":"PASS or FAIL","elements_in_danger_zone":[],"explanation":"one sentence"}},"quality":{{"score":0-100,"thumb_stop_power":"Strong/Moderate/Weak","text_clarity":"Clear/Borderline/Poor","value_prop_visible":true or false,"contrast":"High/Medium/Low","clutter_level":"Clean/Moderate/Cluttered"}},"performance_score":0-100,"winning_verdict":"Winning Ad/Promising/Needs Work/Not Ready","is_winning_ad":true or false,"strengths":[],"issues":[],"improvements":[],"analysis":"3 sentences specific to this ad"}}"""
 
         with open(image_path, "rb") as f:
             img_bytes = f.read()
 
-        mime = "image/jpeg"
-        if img_bytes[:8] == b'\x89PNG\r\n\x1a\n':
-            mime = "image/png"
-        elif img_bytes[:6] in (b'GIF87a', b'GIF89a'):
-            mime = "image/gif"
-        elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
-            mime = "image/webp"
+        # Resize to max 1024px to keep token usage low
+        try:
+            from PIL import Image as PilImage
+            import io as _io
+            pil = PilImage.open(_io.BytesIO(img_bytes)).convert("RGB")
+            if max(pil.size) > 1024:
+                pil.thumbnail((1024, 1024), PilImage.LANCZOS)
+            buf = _io.BytesIO()
+            pil.save(buf, format="JPEG", quality=85)
+            img_bytes = buf.getvalue()
+        except Exception:
+            pass
 
         b64 = base64.b64encode(img_bytes).decode()
 
-        # Groq vision uses OpenAI-compatible chat completions format
+        # Free vision models on OpenRouter
         models_to_try = [
-            "meta-llama/llama-4-scout-17b-16e-instruct",
-            "meta-llama/llama-4-maverick-33b-16e-instruct-fp8-fast",
+            "meta-llama/llama-3.2-11b-vision-instruct:free",
+            "qwen/qwen2.5-vl-7b-instruct:free",
+            "meta-llama/llama-3.2-90b-vision-instruct:free",
         ]
-        payload = json.dumps({
-            "model": models_to_try[0],
-            "messages": [{
-                "role": "user",
-                "content": [
-                    {"type": "image_url",
-                     "image_url": {"url": f"data:{mime};base64,{b64}"}},
-                    {"type": "text", "text": prompt},
-                ],
-            }],
-            "temperature": 0.1,
-            "max_tokens": 2048,
-        }).encode("utf-8")
 
         for model in models_to_try:
-            payload_dict = json.loads(payload)
-            payload_dict["model"] = model
+            payload = json.dumps({
+                "model": model,
+                "messages": [{
+                    "role": "user",
+                    "content": [
+                        {"type": "image_url",
+                         "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                        {"type": "text", "text": prompt},
+                    ],
+                }],
+                "temperature": 0.1,
+                "max_tokens": 2048,
+            }).encode("utf-8")
+
             req = urllib.request.Request(
-                "https://api.groq.com/openai/v1/chat/completions",
-                data=json.dumps(payload_dict).encode("utf-8"),
+                "https://openrouter.ai/api/v1/chat/completions",
+                data=payload,
                 headers={
                     "Content-Type": "application/json",
                     "Authorization": f"Bearer {api_key}",
+                    "HTTP-Referer": "https://meta-ads-static-checker-1.onrender.com",
+                    "X-Title": "Meta Ads Checker",
                 },
                 method="POST",
             )
             try:
                 with urllib.request.urlopen(req, timeout=90) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
-                print(f"[Groq] success with model: {model}", file=sys.stderr)
+                # OpenRouter free models can return an error inside 200 response
+                if "error" in data:
+                    print(f"[OpenRouter] {model} error: {data['error']}", file=sys.stderr)
+                    continue
+                print(f"[OpenRouter] success with model: {model}", file=sys.stderr)
                 raw = data["choices"][0]["message"]["content"].strip()
                 if raw.startswith("```"):
                     lines = raw.split("\n")
@@ -659,20 +662,20 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
                     body = e.read().decode("utf-8", errors="replace")[:400]
                 except Exception:
                     pass
-                print(f"[Groq] {model} HTTP {e.code}: {body}", file=sys.stderr)
+                print(f"[OpenRouter] {model} HTTP {e.code}: {body}", file=sys.stderr)
                 continue
             except json.JSONDecodeError as je:
-                print(f"[Groq] {model} JSON parse error: {je}", file=sys.stderr)
-                return None
+                print(f"[OpenRouter] {model} JSON parse error: {je}", file=sys.stderr)
+                continue
             except Exception as e:
-                print(f"[Groq] {model} error: {type(e).__name__}: {e}", file=sys.stderr)
+                print(f"[OpenRouter] {model} error: {type(e).__name__}: {e}", file=sys.stderr)
                 continue
 
-        print("[Groq] all models failed", file=sys.stderr)
+        print("[OpenRouter] all models failed", file=sys.stderr)
         return None
 
     except Exception as e:
-        print(f"[Groq] setup error: {type(e).__name__}: {e}", file=sys.stderr)
+        print(f"[OpenRouter] setup error: {type(e).__name__}: {e}", file=sys.stderr)
         return None
 
 
@@ -683,9 +686,9 @@ def analyze_ad(image_path: str, ratio_name: str | None, ad_copy: str = "") -> di
     if gemini:
         return gemini
 
-    groq = _groq_analyze(image_path, ratio_name)
-    if groq:
-        return groq
+    openrouter = _openrouter_analyze(image_path, ratio_name)
+    if openrouter:
+        return openrouter
 
     with Image.open(image_path) as img:
         img = img.convert("RGB")
