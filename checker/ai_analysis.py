@@ -394,7 +394,7 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
             "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
         }).encode("utf-8")
 
-        url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+        url = (f"https://generativelanguage.googleapis.com/v1/models/"
                f"gemini-1.5-flash:generateContent?key={api_key}")
         req = urllib.request.Request(
             url, data=payload,
