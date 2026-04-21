@@ -210,6 +210,12 @@ input[type=file]{display:none}
     <input type="file" id="fileIn" accept=".png,.jpg,.jpeg,.gif,.webp" multiple/>
   </div>
 
+  <div class="copy-card">
+    <div class="copy-card-lbl">🔍 Ad Copy / Headline <span style="font-size:10px;font-weight:600;background:#dbeafe;color:#1d4ed8;border-radius:100px;padding:2px 8px">Optional</span></div>
+    <div class="copy-card-sub">Paste your ad headline, caption, or any text in the image. Instantly checks for before/after language, health claims, personal attributes, and engagement bait — even if AI vision is unavailable.</div>
+    <textarea id="adCopy" class="copy-area" placeholder="e.g. 'Transform your skin in 30 days. See before and after results. Clinically proven formula...'&#10;Leave blank to skip text analysis."></textarea>
+  </div>
+
   <button class="btn-go" id="goBtn" disabled>Analyze Ads</button>
 
   <div class="prog-wrap" id="progWrap">
@@ -279,6 +285,7 @@ goBtn.addEventListener('click',async()=>{
 
   const fd=new FormData();
   files.forEach(f=>fd.append('files',f));
+  fd.append('ad_copy',document.getElementById('adCopy').value.trim());
   let prog=10;
   const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*10,88);progFill.style.width=prog+'%'},700);
 
