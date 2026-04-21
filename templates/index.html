@@ -210,13 +210,6 @@ input[type=file]{display:none}
     <input type="file" id="fileIn" accept=".png,.jpg,.jpeg,.gif,.webp" multiple/>
   </div>
 
-  <div class="copy-card">
-    <div class="copy-card-lbl">🔍 Ad Copy / Caption <span style="font-size:10px;font-weight:600;background:#dbeafe;color:#1d4ed8;border-radius:100px;padding:2px 8px">Recommended</span></div>
-    <div class="copy-card-sub">Paste your ad headline, primary text, or any caption. The policy checker will automatically scan for before/after language, health claims, personal attributes, and engagement bait — no AI required.</div>
-    <textarea id="adCopy" class="copy-area" placeholder="e.g. 'Transform your skin in 30 days. See before and after results. Clinically proven formula...'&#10;Leave blank to skip text analysis."></textarea>
-    <div class="copy-hint"><strong>Why this matters:</strong> "Post and pre treatment" phrasing, "clinically proven", "tag a friend" — these are automatic policy violations that get ads rejected. Catching them here saves you from a disapproved campaign.</div>
-  </div>
-
   <button class="btn-go" id="goBtn" disabled>Analyze Ads</button>
 
   <div class="prog-wrap" id="progWrap">
@@ -286,7 +279,6 @@ goBtn.addEventListener('click',async()=>{
 
   const fd=new FormData();
   files.forEach(f=>fd.append('files',f));
-  fd.append('ad_copy',document.getElementById('adCopy').value.trim());
   let prog=10;
   const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*10,88);progFill.style.width=prog+'%'},700);
 
