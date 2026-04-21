@@ -558,10 +558,9 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
         return None
 
 
-# ── OpenRouter vision analysis (free tier) ───────────────────────────────────
+# ── OpenRouter vision analysis ────────────────────────────────────────────────
 
 def _openrouter_free_vision_models(api_key: str) -> list:
-    """Query OpenRouter's model list and return currently available free vision models."""
     try:
         req = urllib.request.Request(
             "https://openrouter.ai/api/v1/models",
@@ -575,18 +574,23 @@ def _openrouter_free_vision_models(api_key: str) -> list:
             pricing = m.get("pricing", {})
             modality = m.get("architecture", {}).get("modality", "")
             is_free = str(pricing.get("prompt", "1")) == "0" and str(pricing.get("completion", "1")) == "0"
-            has_vision = "image" in modality.lower()
-            if is_free and has_vision:
+            if is_free and "image" in modality.lower():
                 models.append(m["id"])
-        print(f"[OpenRouter] {len(models)} free vision models found: {models}", file=sys.stderr)
+        print(f"[OpenRouter] free vision models: {models}", file=sys.stderr)
         return models
     except Exception as e:
-        print(f"[OpenRouter] model discovery failed: {e}", file=sys.stderr)
+        print(f"[OpenRouter] model discovery error: {e}", file=sys.stderr)
         return []
+
 
 def _openrouter_analyze(image_path: str, ratio_name: str | None) -> dict | None:
     api_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     if not api_key:
+        return None
+
+    models = _openrouter_free_vision_models(api_key)
+    if not models:
+        print("[OpenRouter] no free vision models available", file=sys.stderr)
         return None
 
     try:
@@ -597,10 +601,10 @@ def _openrouter_analyze(image_path: str, ratio_name: str | None) -> dict | None:
             sz_desc = (
                 f"Danger zones for {ratio_name}: top {int(margins['top']*100)}%, "
                 f"bottom {int(margins['bottom']*100)}%, left/right {int(margins['left']*100)}%. "
-                "Flag only text/logos/CTAs clearly inside danger zones."
+                "Flag only text/logos/CTAs clearly inside danger zones. Backgrounds = IGNORE."
             )
 
-        prompt = f"""You are an expert Meta (Facebook/Instagram) ad compliance analyst and creative strategist.
+        prompt = f"""You are an expert Meta (Facebook/Instagram) ad compliance analyst.
 Aspect ratio: {ratio_name or 'unknown'}
 {sz_desc}
 
@@ -619,13 +623,12 @@ Return ONLY valid JSON, no markdown:
         with open(image_path, "rb") as f:
             img_bytes = f.read()
 
-        # Resize to max 1024px to keep token usage low
+        # Resize to max 1024px before sending
         try:
-            from PIL import Image as PilImage
             import io as _io
-            pil = PilImage.open(_io.BytesIO(img_bytes)).convert("RGB")
+            pil = Image.open(_io.BytesIO(img_bytes)).convert("RGB")
             if max(pil.size) > 1024:
-                pil.thumbnail((1024, 1024), PilImage.LANCZOS)
+                pil.thumbnail((1024, 1024), Image.LANCZOS)
             buf = _io.BytesIO()
             pil.save(buf, format="JPEG", quality=85)
             img_bytes = buf.getvalue()
@@ -634,27 +637,16 @@ Return ONLY valid JSON, no markdown:
 
         b64 = base64.b64encode(img_bytes).decode()
 
-        # Dynamically discover currently-available free vision models
-        models_to_try = _openrouter_free_vision_models(api_key)
-        if not models_to_try:
-            print("[OpenRouter] no free vision models available right now", file=sys.stderr)
-            return None
-
-        for model in models_to_try:
+        for model in models:
             payload = json.dumps({
                 "model": model,
-                "messages": [{
-                    "role": "user",
-                    "content": [
-                        {"type": "image_url",
-                         "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
-                        {"type": "text", "text": prompt},
-                    ],
-                }],
+                "messages": [{"role": "user", "content": [
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
+                    {"type": "text", "text": prompt},
+                ]}],
                 "temperature": 0.1,
                 "max_tokens": 2048,
             }).encode("utf-8")
-
             req = urllib.request.Request(
                 "https://openrouter.ai/api/v1/chat/completions",
                 data=payload,
@@ -669,11 +661,10 @@ Return ONLY valid JSON, no markdown:
             try:
                 with urllib.request.urlopen(req, timeout=90) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
-                # OpenRouter free models can return an error inside 200 response
                 if "error" in data:
                     print(f"[OpenRouter] {model} error: {data['error']}", file=sys.stderr)
                     continue
-                print(f"[OpenRouter] success with model: {model}", file=sys.stderr)
+                print(f"[OpenRouter] success with {model}", file=sys.stderr)
                 raw = data["choices"][0]["message"]["content"].strip()
                 if raw.startswith("```"):
                     lines = raw.split("\n")
@@ -682,17 +673,14 @@ Return ONLY valid JSON, no markdown:
             except urllib.error.HTTPError as e:
                 body = ""
                 try:
-                    body = e.read().decode("utf-8", errors="replace")[:400]
+                    body = e.read().decode("utf-8", errors="replace")[:300]
                 except Exception:
                     pass
                 print(f"[OpenRouter] {model} HTTP {e.code}: {body}", file=sys.stderr)
-                continue
             except json.JSONDecodeError as je:
-                print(f"[OpenRouter] {model} JSON parse error: {je}", file=sys.stderr)
-                continue
+                print(f"[OpenRouter] {model} JSON error: {je}", file=sys.stderr)
             except Exception as e:
                 print(f"[OpenRouter] {model} error: {type(e).__name__}: {e}", file=sys.stderr)
-                continue
 
         print("[OpenRouter] all models failed", file=sys.stderr)
         return None
@@ -705,13 +693,9 @@ Return ONLY valid JSON, no markdown:
 # ── Public entry point ────────────────────────────────────────────────────────
 
 def analyze_ad(image_path: str, ratio_name: str | None, ad_copy: str = "") -> dict:
-    gemini = _gemini_analyze(image_path, ratio_name, ad_copy)
-    if gemini:
-        return gemini
-
-    openrouter = _openrouter_analyze(image_path, ratio_name)
-    if openrouter:
-        return openrouter
+    result = _openrouter_analyze(image_path, ratio_name)
+    if result:
+        return result
 
     with Image.open(image_path) as img:
         img = img.convert("RGB")
