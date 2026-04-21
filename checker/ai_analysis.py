@@ -382,7 +382,6 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
         elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
             mime = "image/webp"
 
-        # Direct REST call — no SDK, no version issues
         payload = json.dumps({
             "contents": [{
                 "parts": [
@@ -394,24 +393,54 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
             "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
         }).encode("utf-8")
 
-        url = (f"https://generativelanguage.googleapis.com/v1/models/"
-               f"gemini-1.5-flash:generateContent?key={api_key}")
-        req = urllib.request.Request(
-            url, data=payload,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        # Try models in order — newer free-tier models first
+        models_to_try = [
+            "gemini-2.0-flash-lite",
+            "gemini-1.5-flash-8b",
+            "gemini-1.5-flash",
+            "gemini-1.5-flash-latest",
+            "gemini-1.5-flash-001",
+        ]
+        last_error = None
+        for model in models_to_try:
+            url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+                   f"{model}:generateContent?key={api_key}")
+            req = urllib.request.Request(
+                url, data=payload,
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                print(f"[Gemini] success with model: {model}", file=sys.stderr)
+                raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                if raw.startswith("```"):
+                    lines = raw.split("\n")
+                    raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+                return json.loads(raw)
+            except urllib.error.HTTPError as e:
+                body = ""
+                try:
+                    body = e.read().decode("utf-8", errors="replace")[:400]
+                except Exception:
+                    pass
+                print(f"[Gemini] {model} HTTP {e.code}: {body}", file=sys.stderr)
+                last_error = e
+                continue
+            except json.JSONDecodeError as e:
+                print(f"[Gemini] {model} JSON parse error: {e}", file=sys.stderr)
+                return None
+            except Exception as e:
+                print(f"[Gemini] {model} error: {type(e).__name__}: {e}", file=sys.stderr)
+                last_error = e
+                continue
 
-        raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
-        if raw.startswith("```"):
-            lines = raw.split("\n")
-            raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
-        return json.loads(raw)
+        print(f"[Gemini] all models failed, last error: {last_error}", file=sys.stderr)
+        return None
 
     except Exception as e:
-        print(f"[Gemini] error: {type(e).__name__}: {e}", file=sys.stderr)
+        print(f"[Gemini] setup error: {type(e).__name__}: {e}", file=sys.stderr)
         return None
 
 
