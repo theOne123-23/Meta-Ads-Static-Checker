@@ -3,8 +3,8 @@ import io
 import sys
 import json
 import base64
-from google import genai
-from google.genai import types as genai_types
+import urllib.request
+import urllib.error
 from PIL import Image, ImageFilter, ImageStat
 
 SAFE_ZONE_MARGINS = {
@@ -288,8 +288,6 @@ def _gemini_analyze(image_path: str, ratio_name: str | None) -> dict | None:
         return None
 
     try:
-        client = genai.Client(api_key=api_key)
-
         margins = SAFE_ZONE_MARGINS.get(ratio_name or "", {})
         if ratio_name == "1:1" or not margins:
             sz_desc = "1:1 ratio — ENTIRE image is fully visible. Safe zone = PASS automatically."
@@ -384,13 +382,29 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
         elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
             mime = "image/webp"
 
-        img_part = genai_types.Part.from_bytes(data=img_bytes, mime_type=mime)
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=[img_part, prompt],
-        )
+        # Direct REST call — no SDK, no version issues
+        payload = json.dumps({
+            "contents": [{
+                "parts": [
+                    {"inline_data": {"mime_type": mime,
+                                     "data": base64.b64encode(img_bytes).decode()}},
+                    {"text": prompt},
+                ]
+            }],
+            "generationConfig": {"temperature": 0.1, "maxOutputTokens": 2048},
+        }).encode("utf-8")
 
-        raw = response.text.strip()
+        url = (f"https://generativelanguage.googleapis.com/v1beta/models/"
+               f"gemini-1.5-flash:generateContent?key={api_key}")
+        req = urllib.request.Request(
+            url, data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
+        raw = data["candidates"][0]["content"]["parts"][0]["text"].strip()
         if raw.startswith("```"):
             lines = raw.split("\n")
             raw = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
