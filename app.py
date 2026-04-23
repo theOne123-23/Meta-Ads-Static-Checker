@@ -7,7 +7,7 @@ from checker.ai_analysis import analyze_ad
 
 app = Flask(__name__)
 app.config["UPLOAD_FOLDER"] = "uploads"
-app.config["MAX_CONTENT_LENGTH"] = 100 * 1024 * 1024  # 100MB for bulk
+app.config["MAX_CONTENT_LENGTH"] = 32 * 1024 * 1024  # 32MB
 
 os.makedirs("uploads", exist_ok=True)
 
@@ -18,6 +18,16 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+
+@app.errorhandler(413)
+def too_large(e):
+    return jsonify({"error": "File too large. Max 32MB per upload."}), 413
+
+
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -25,53 +35,57 @@ def index():
 
 @app.route("/check-bulk", methods=["POST"])
 def check_bulk():
-    files = request.files.getlist("files")
-    if not files or all(f.filename == "" for f in files):
-        return jsonify({"error": "No files uploaded."}), 400
+    try:
+        files = request.files.getlist("files")
+        if not files or all(f.filename == "" for f in files):
+            return jsonify({"error": "No files uploaded."}), 400
 
-    ad_copy = request.form.get("ad_copy", "").strip()
+        ad_copy = request.form.get("ad_copy", "").strip()
 
-    results = []
-    for file in files:
-        if not file or file.filename == "":
-            continue
-        if not allowed_file(file.filename):
-            results.append({
-                "filename": file.filename,
-                "error": "File type not allowed. Use PNG, JPG, GIF, or WEBP.",
-            })
-            continue
+        results = []
+        for file in files:
+            if not file or file.filename == "":
+                continue
+            if not allowed_file(file.filename):
+                results.append({
+                    "filename": file.filename,
+                    "error": "File type not allowed. Use PNG, JPG, GIF, or WEBP.",
+                })
+                continue
 
-        filename = secure_filename(file.filename)
-        save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
-        file.save(save_path)
-
-        try:
-            size_result = check_size(save_path)
-            ratio = size_result.get("detected_ratio")
+            filename = secure_filename(file.filename)
+            save_path = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+            file.save(save_path)
 
             try:
-                safe_zone_result = check_safe_zone(save_path, ratio) if ratio else None
-            except Exception as e:
-                safe_zone_result = None
-                size_result.setdefault("issues", []).append(f"Safe zone check failed: {str(e)}")
+                size_result = check_size(save_path)
+                ratio = size_result.get("detected_ratio")
 
-            try:
-                ai_result = analyze_ad(save_path, ratio, ad_copy)
-            except Exception as e:
-                ai_result = {"error": f"AI analysis failed: {str(e)}"}
+                try:
+                    safe_zone_result = check_safe_zone(save_path, ratio) if ratio else None
+                except Exception as e:
+                    safe_zone_result = None
+                    size_result.setdefault("issues", []).append(f"Safe zone check failed: {str(e)}")
 
-            results.append({
-                "filename": file.filename,
-                "size": size_result,
-                "safe_zone": safe_zone_result,
-                "ai": ai_result,
-            })
-        finally:
-            if os.path.exists(save_path):
-                os.remove(save_path)
+                try:
+                    ai_result = analyze_ad(save_path, ratio, ad_copy)
+                except Exception as e:
+                    ai_result = {"error": f"AI analysis failed: {str(e)}"}
 
-    return jsonify({"results": results})
+                results.append({
+                    "filename": file.filename,
+                    "size": size_result,
+                    "safe_zone": safe_zone_result,
+                    "ai": ai_result,
+                })
+            finally:
+                if os.path.exists(save_path):
+                    os.remove(save_path)
+
+        return jsonify({"results": results})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
