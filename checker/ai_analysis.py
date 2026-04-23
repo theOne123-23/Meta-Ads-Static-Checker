@@ -560,6 +560,8 @@ Analyze this ad image and return ONLY valid JSON, no markdown, no explanation:
 
 # ── OpenRouter vision analysis ────────────────────────────────────────────────
 
+_OPENROUTER_SKIP = {"ocr", "lyria", "audio", "speech", "openrouter/free"}
+
 def _openrouter_free_vision_models(api_key: str) -> list:
     try:
         req = urllib.request.Request(
@@ -571,12 +573,17 @@ def _openrouter_free_vision_models(api_key: str) -> list:
             data = json.loads(resp.read().decode("utf-8"))
         models = []
         for m in data.get("data", []):
+            model_id = m.get("id", "")
             pricing = m.get("pricing", {})
             modality = m.get("architecture", {}).get("modality", "")
             is_free = str(pricing.get("prompt", "1")) == "0" and str(pricing.get("completion", "1")) == "0"
-            if is_free and "image" in modality.lower():
-                models.append(m["id"])
-        print(f"[OpenRouter] free vision models: {models}", file=sys.stderr)
+            # Only real chat-vision models: input includes image, output is text
+            is_vision_chat = "image" in modality.lower() and modality.lower().endswith("->text")
+            should_skip = any(p in model_id.lower() for p in _OPENROUTER_SKIP)
+            if is_free and is_vision_chat and not should_skip:
+                models.append(model_id)
+        models = models[:3]  # cap at 3 to stay within gunicorn timeout
+        print(f"[OpenRouter] vision models to try: {models}", file=sys.stderr)
         return models
     except Exception as e:
         print(f"[OpenRouter] model discovery error: {e}", file=sys.stderr)
@@ -659,7 +666,7 @@ Return ONLY valid JSON, no markdown:
                 method="POST",
             )
             try:
-                with urllib.request.urlopen(req, timeout=90) as resp:
+                with urllib.request.urlopen(req, timeout=15) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                 if "error" in data:
                     print(f"[OpenRouter] {model} error: {data['error']}", file=sys.stderr)
